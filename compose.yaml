@@ -7,7 +7,7 @@ services:
     env_file:
       - .env
     networks:
-      - ruki_plugins_kanban
+      - ruki_plugins
     read_only: true
     tmpfs:
       - /tmp
@@ -18,8 +18,7 @@ services:
 
 networks:
   ruki_plugins:
-    name: ruki_plugins_kanban
-    external: true
+    name: ruki_plugins
   ruki_cloudflared:
     name: ruki_cloudflared
     external: true
