@@ -1,0 +1,21 @@
+{
+  "name": "kanban-plugin-backend",
+  "version": "1.0.0",
+  "description": "Backend proxy seguro para el Dashboard App de pipeline (Chatwoot)",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^7.2.0",
+    "node-fetch": "^2.7.0",
+    "dotenv": "^16.4.5"
+  }
+}

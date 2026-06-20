@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pipeline</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card-bg: #ffffff;
+    --border: #e1e4e8;
+    --text: #1f2933;
+    --muted: #6b7280;
+    --accent: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  #toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  #status { color: var(--muted); }
+  #board {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    overflow-x: auto;
+    align-items: flex-start;
+  }
+  .column {
+    background: #ebecf0;
+    border-radius: 8px;
+    width: 240px;
+    flex-shrink: 0;
+    padding: 8px;
+    min-height: 200px;
+  }
+  .column h3 {
+    font-size: 13px;
+    margin: 4px 6px 10px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--text);
+  }
+  .column h3 .count {
+    color: var(--muted);
+    font-weight: normal;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    cursor: grab;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .card.dragging { opacity: 0.4; }
+  .card .name { font-weight: 600; margin-bottom: 2px; }
+  .card .meta { color: var(--muted); font-size: 11px; }
+  .card a { color: var(--accent); text-decoration: none; font-size: 11px; }
+  .column.drag-over { background: #d6e4ff; }
+  #error-banner {
+    display: none;
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div id="error-banner"></div>
+<div id="toolbar">
+  <strong>Pipeline</strong>
+  <span id="status">Cargando…</span>
+</div>
+<div id="board"></div>
+
+<script>
+(function () {
+  // ------------------------------------------------------------------
+  // 1. Recibir contexto desde Chatwoot (Dashboard App postMessage)
+  // ------------------------------------------------------------------
+  let chatwootContext = null;
+  window.addEventListener('message', (event) => {
+    // No validamos event.origin contra una lista fija aquí porque Chatwoot
+    // puede estar self-hosted en cualquier dominio propio; la protección real
+    // está en el backend (frame-ancestors + x-plugin-key), no en este check.
+    if (event.data && event.data.event === 'appContext') {
+      chatwootContext = event.data.data;
+    }
+  });
+
+  // ------------------------------------------------------------------
+  // 2. Config: la "key" del plugin se inyecta vía query param al armar
+  //    la URL del Dashboard App en Chatwoot, por ejemplo:
+  //    https://plugins.ruki-bot.com/kanban/?k=LA_PLUGIN_KEY
+  //    No es un secreto "fuerte" (vive en la URL), pero saca el problema
+  //    de acceso anónimo total. Para algo más robusto, ver nota en el README.
+  // ------------------------------------------------------------------
+  const params = new URLSearchParams(window.location.search);
+  const PLUGIN_KEY = params.get('k') || '';
+
+  const board = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const errorBanner = document.getElementById('error-banner');
+
+  const ETAPA_COLORS = {
+    'Prospección': '#94a3b8',
+    'Contactado': '#fbbf24',
+    'Cotización enviada': '#a78bfa',
+    'Negociación': '#fb923c',
+    'Ganado': '#34d399',
+    'Perdido': '#f87171',
+  };
+
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = 'block';
+  }
+
+  async function apiFetch(path, options = {}) {
+    const res = await fetch(path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-plugin-key': PLUGIN_KEY,
+        ...(options.headers || {}),
+      },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Error ${res.status}`);
+    }
+    return res.json();
+  }
+
+  function renderBoard(etapas, conversations) {
+    board.innerHTML = '';
+    etapas.forEach((etapa) => {
+      const column = document.createElement('div');
+      column.className = 'column';
+      column.dataset.etapa = etapa;
+
+      const items = conversations.filter((c) => c.etapa === etapa);
+
+      const header = document.createElement('h3');
+      header.innerHTML = `<span>${etapa}</span><span class="count">${items.length}</span>`;
+      header.style.borderTop = `3px solid ${ETAPA_COLORS[etapa] || '#999'}`;
+      header.style.paddingTop = '6px';
+      column.appendChild(header);
+
+      items.forEach((conv) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.draggable = true;
+        card.dataset.id = conv.id;
+        card.innerHTML = `
+          <div class="name">${escapeHtml(conv.contactName)}</div>
+          <div class="meta">${conv.contactEmail ? escapeHtml(conv.contactEmail) : 'Sin email'}</div>
+          <a href="${conv.chatwootUrl}" target="_blank" rel="noopener">Abrir en Chatwoot →</a>
+        `;
+        card.addEventListener('dragstart', () => card.classList.add('dragging'));
+        card.addEventListener('dragend', () => card.classList.remove('dragging'));
+        column.appendChild(card);
+      });
+
+      column.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        column.classList.add('drag-over');
+      });
+      column.addEventListener('dragleave', () => column.classList.remove('drag-over'));
+      column.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        column.classList.remove('drag-over');
+        const dragging = document.querySelector('.card.dragging');
+        if (!dragging) return;
+        const conversationId = dragging.dataset.id;
+        const nuevaEtapa = column.dataset.etapa;
+
+        column.appendChild(dragging); // optimista
+        try {
+          await apiFetch(`/api/kanban/conversations/${conversationId}/etapa`, {
+            method: 'POST',
+            body: JSON.stringify({ etapa: nuevaEtapa }),
+          });
+        } catch (err) {
+          showError('No se pudo guardar el cambio: ' + err.message);
+          load(); // revertir recargando datos reales
+        }
+      });
+
+      board.appendChild(column);
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function load() {
+    try {
+      statusEl.textContent = 'Cargando…';
+      const data = await apiFetch('/api/kanban/conversations');
+      renderBoard(data.etapas, data.conversations);
+      statusEl.textContent = `${data.conversations.length} conversaciones · actualizado ${new Date().toLocaleTimeString()}`;
+    } catch (err) {
+      showError('No se pudo cargar el pipeline: ' + err.message);
+      statusEl.textContent = 'Error al cargar';
+    }
+  }
+
+  load();
+  setInterval(load, 30000); // refresco automático cada 30s
+})();
+</script>
+</body>
+</html>
