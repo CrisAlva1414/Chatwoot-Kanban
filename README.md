@@ -56,22 +56,28 @@ nano .env
 echo "PLUGIN_SECRET generado: $(openssl rand -hex 32)"  # pegar en .env
 ```
 
-## 4. Desplegar desde Arcane
+## 4. Desplegar desde Arcane (Git Sync)
 
-Como proyecto independiente (ADR no usa stacks agrupados ni `up.sh` central
-para apps nuevas — eso es solo para infra base):
+Este repo es exclusivo para el plugin — `compose.yaml` vive en la raíz junto
+al `Dockerfile`, `backend/` y `frontend/`. Arcane clona el directorio completo.
 
-1. Subir esta carpeta al servidor, ej. `/opt/ruki-system/docker/compose/plugins-kanban/`
-2. En Arcane: **New Project** → apuntar a esa carpeta → `.env` ya presente
-3. Deploy / Up
+1. **Customize → Git Repositories → Add Repository** — URL del repo +
+   autenticación (PAT o SSH key).
+2. **Projects → dropdown junto a "Create Project" → From Git Repo.**
+3. **Sync Name:** `plugins-kanban`
+4. **Repository / Branch:** este repo, `main`.
+5. **Compose File Path:** `compose.yaml` (raíz).
+6. **Auto Sync:** activar — un `git push` futuro redepliega solo (nota: solo
+   redepliega si el proyecto ya está corriendo).
+7. **Create Sync.**
 
-O por línea de comandos si prefieres verificarlo antes de que Arcane lo gestione:
+El `compose.yaml` queda **read-only** desde la UI (se edita vía Git). El
+`.env` sí queda editable directo en Arcane — ahí completas
+`CHATWOOT_API_TOKEN`, `CHATWOOT_ACCOUNT_ID` y `PLUGIN_SECRET` (nunca van al
+repo).
 
-```bash
-cd /opt/ruki-system/docker/compose/plugins-kanban
-docker compose -p plugins-kanban up -d --build
-docker compose -p plugins-kanban logs -f
-```
+Después de crear el sync, Arcane hace `build` con el `Dockerfile` del repo
+— no se necesita registry ni imagen pre-construida.
 
 ## 5. Ruta pública en Cloudflare Tunnel
 
@@ -82,7 +88,7 @@ En el dashboard de Cloudflare Zero Trust, agregar Public Hostname:
 | `plugins.ruki-bot.com` (o subruta `/kanban`) | `http://kanban_plugins:3000` |
 
 El nombre de host interno (`kanban_plugins`) es el nombre del servicio en
-`docker-compose.yml` — Docker lo resuelve dentro de `ruki_plugins_kanban`.
+`compose.yaml` — Docker lo resuelve dentro de `ruki_plugins_kanban`.
 Si Compose le agrega sufijo de réplica (`kanban_plugins-1`), usar ese nombre
 exacto en la ruta de Cloudflare (revisar con `docker ps`).
 
@@ -120,7 +126,7 @@ Abrir cualquier conversación → debería aparecer la pestaña "Pipeline".
 - `CHATWOOT_FRAME_ANCESTOR` fija el único dominio que puede embeber este
   iframe — si no coincide con `chat.ruki-bot.com`, el iframe no carga.
 - Rotar `PLUGIN_SECRET` y `CHATWOOT_API_TOKEN` periódicamente: cambiar en
-  `.env`, `docker compose -p plugins-kanban up -d` (recrea el contenedor),
+  `.env`, `docker compose -p plugins-kanban -f compose.yaml up -d` (recrea el contenedor),
   actualizar la URL en el Dashboard App de Chatwoot.
 - Este patrón (frontend estático + backend Express con `requirePluginKey`,
   sin socket Docker, red propia) es la base para los próximos plugins bajo
@@ -133,9 +139,8 @@ Abrir cualquier conversación → debería aparecer la pestaña "Pipeline".
 ## Comandos útiles
 
 ```bash
-docker compose -p plugins-kanban restart kanban_plugins   # tras cambiar .env
-docker compose -p plugins-kanban down                     # apagar
-docker compose -p plugins-kanban logs -f                  # logs en vivo
-docker compose -p plugins-kanban pull && docker compose -p plugins-kanban up -d --build  # actualizar
+docker compose -p plugins-kanban -f compose.yaml restart kanban_plugins   # tras cambiar .env
+docker compose -p plugins-kanban -f compose.yaml down                     # apagar
+docker compose -p plugins-kanban -f compose.yaml logs -f                  # logs en vivo
+docker compose -p plugins-kanban -f compose.yaml pull && docker compose -p plugins-kanban -f compose.yaml up -d --build  # actualizar
 ```
-# Ruki-Plugins
