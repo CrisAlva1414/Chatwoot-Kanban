@@ -66,27 +66,51 @@ async def kanban_board(stage: str | None = None):
         except Exception:
             resp = {"conversations": [], "payload": []}
 
-        conversations = resp.get("conversations") or resp.get("payload") or []
-        cards = []
-        for c in conversations:
-            meta = c.get("meta") or {}
-            sender = meta.get("sender") or {}
-            cards.append(
-                {
-                    "id": c.get("id"),
-                    "contact_name": sender.get("name")
-                    or sender.get("email")
-                    or f"#{c.get('id')}",
-                    "thumbnail": sender.get("thumbnail"),
-                    "last_message": _last_message_preview(c),
-                    "custom_attributes": c.get("custom_attributes") or {},
-                    "inbox_id": c.get("inbox_id"),
-                    "updated_at": c.get("updated_at"),
-                }
-            )
+        cards = _parse_conversations(resp)
         columns.append({"stage": s, "conversations": cards})
 
     return {"columns": columns, "chatwoot_url": chatwoot_client.base_url}
+
+
+@router.get("/api/kanban/debug-raw")
+async def kanban_debug_raw():
+    """Devuelve la respuesta cruda de Chatwoot para debuggear el shape."""
+    stage = "Potencial"
+    payload = {
+        "payload": [
+            {
+                "attribute_key": "pipeline_01_etapas",
+                "filter_operator": "equal_to",
+                "values": [stage],
+                "query_operator": "AND",
+                "custom_attribute_type": "conversation_attribute",
+            }
+        ]
+    }
+    try:
+        resp = await chatwoot_client.filter_conversations(payload)
+        return {
+            "stage": stage,
+            "raw": resp,
+            "keys": list(resp.keys())
+            if isinstance(resp, dict)
+            else type(resp).__name__,
+        }
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _parse_conversations(resp: dict) -> list:
+    """Intenta extraer conversaciones del response de Chatwoot."""
+    if isinstance(resp, dict):
+        for key in ("payload", "conversations", "data"):
+            val = resp.get(key)
+            if isinstance(val, list):
+                return val
+        return []
+    if isinstance(resp, list):
+        return resp
+    return []
 
 
 def _last_message_preview(conv: dict, maxlen: int = 80) -> str:
