@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Postgres
     database_url: str
 
+    # Webhook
+    chatwoot_webhook_secret: str = ""
+
     # Cloudflare Access (etapa 0, dejado listo para cuando lo conectemos)
     cf_access_team_domain: str = ""
     cf_access_aud: str = ""

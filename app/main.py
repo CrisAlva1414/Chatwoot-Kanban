@@ -1,10 +1,23 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-from app.routers import conversations
+from app.database import close_pool, init_pool
+from app.routers import api, conversations, webhooks
 
-app = FastAPI(title="Chatwoot Integration - i-labs")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    await init_pool()
+    yield
+    await close_pool()
+
+
+app = FastAPI(title="Chatwoot Integration - i-labs", lifespan=lifespan)
 
 app.include_router(conversations.router)
+app.include_router(api.router)
+app.include_router(webhooks.router)
 
 
 @app.get("/health")

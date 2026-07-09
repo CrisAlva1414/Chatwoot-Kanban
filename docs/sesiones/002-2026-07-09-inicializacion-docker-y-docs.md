@@ -40,7 +40,36 @@ alcance; esta sesión implementa la infraestructura.
 
 Los ADR-001 a ADR-007 vienen de la sesión de factibilidad (Opus 4.8).
 
+## Sesión extendida — Implementación Etapa 2
+
+Después de la puesta en producción se implementó la Etapa 2:
+
+**Qué se hizo:**
+- `app/database.py` — pool asyncpg + creación automática de tablas (agentes,
+  tareas, task_audit_log, webhook_events)
+- `app/schemas/chatwoot.py` — modelos Pydantic para definiciones de custom
+  attributes y webhook
+- `app/routers/api.py` — `POST /api/conversations/{id}/custom-attributes`
+  (proxy de escritura hacia Chatwoot)
+- `app/routers/webhooks.py` — `POST /webhooks/conversation-updated`
+  (receptor con verificación HMAC e idempotencia)
+- `app/main.py` — lifespan con init/close de pool DB
+- `app/config.py` — nueva variable `chatwoot_webhook_secret`
+- `.env.example` — actualizado
+
+**Archivos nuevos:**
+- `app/database.py`
+- `app/schemas/chatwoot.py`
+- `app/routers/api.py`
+- `app/routers/webhooks.py`
+
+**Archivos modificados:**
+- `app/main.py` — lifespan + nuevos routers
+- `app/config.py` — webhook secret
+
 ## Próximo paso
 
-Configurar Cloudflare Access en la app (validación de JWT) para cerrar
-el circuito de seguridad antes de avanzar a la Etapa 2 (Kanban visual).
+Configurar el webhook en Chatwoot (apuntando a
+`https://kanban.ruki-bot.com/webhooks/conversation-updated`) y probar el
+endpoint de escritura contra una conversación real. Luego Etapa 3 (Kanban
+visual).
