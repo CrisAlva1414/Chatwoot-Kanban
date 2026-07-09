@@ -7,7 +7,7 @@ pool: asyncpg.Pool | None = None
 
 async def init_pool() -> asyncpg.Pool:
     global pool
-    dsn = settings.database_url
+    dsn = settings.resolved_db_url
     pool = await asyncpg.create_pool(dsn=dsn, min_size=2, max_size=10)
     await _init_schema()
     return pool
