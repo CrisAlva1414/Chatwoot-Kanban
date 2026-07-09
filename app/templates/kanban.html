@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {} },
+  corePlugins: { preflight: false },
+}
+</script>
+<style>
+:root {
+  --slate-1: 252 252 253; --slate-2: 249 249 251; --slate-3: 235 236 240;
+  --slate-4: 224 226 231; --slate-5: 214 217 224; --slate-6: 204 207 216;
+  --slate-7: 190 194 204; --slate-8: 167 172 185; --slate-9: 138 143 155;
+  --slate-10: 126 131 143; --slate-11: 96 100 108; --slate-12: 28 32 36;
+  --blue-9: 39 129 246;
+  --blue-10: 16 115 233;
+  --red-9: 229 70 102;
+  --amber-9: 255 197 61;
+  --green-9: 18 165 148;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: Inter, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Tahoma, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgb(var(--slate-12));
+  background: #f7f7f7;
+  -webkit-font-smoothing: antialiased;
+}
+
+.kanban-header {
+  background: #fff;
+  border-bottom: 1px solid #ececec;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.kanban-header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgb(var(--slate-12));
+  white-space: nowrap;
+}
+
+.kanban-header select {
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid #e2e3e7;
+  border-radius: 6px;
+  background: #fff;
+  color: rgb(var(--slate-12));
+  outline: none;
+  cursor: pointer;
+}
+.kanban-header select:focus {
+  border-color: rgb(var(--blue-9));
+  box-shadow: 0 0 0 2px rgb(var(--blue-9) / 0.15);
+}
+
+.kanban-header .refresh-btn {
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px solid #e2e3e7;
+  border-radius: 6px;
+  background: #fff;
+  color: rgb(var(--slate-11));
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.kanban-header .refresh-btn:hover {
+  background: rgb(var(--slate-3));
+  color: rgb(var(--slate-12));
+}
+.kanban-header .refresh-btn:active {
+  background: rgb(var(--slate-4));
+}
+
+.kanban-header .filter-state {
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid #e2e3e7;
+  border-radius: 6px;
+  background: #fff;
+  color: rgb(var(--slate-12));
+  outline: none;
+  cursor: pointer;
+}
+.kanban-header .filter-state:focus {
+  border-color: rgb(var(--blue-9));
+  box-shadow: 0 0 0 2px rgb(var(--blue-9) / 0.15);
+}
+
+.board {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  overflow-x: auto;
+  min-height: calc(100vh - 57px);
+  align-items: flex-start;
+}
+
+.column {
+  flex: 0 0 280px;
+  max-width: 280px;
+  background: #f1f2f4;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 90px);
+}
+
+.column-header {
+  padding: 10px 12px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(var(--slate-11));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.column-header .count {
+  font-weight: 400;
+  font-size: 11px;
+  color: rgb(var(--slate-9));
+  background: rgb(var(--slate-4));
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.column-body {
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 60px;
+}
+
+.column-body.drag-over {
+  background: rgb(var(--blue-9) / 0.06);
+  border-radius: 6px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: grab;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  position: relative;
+}
+.card:hover {
+  border-color: #c4c7ce;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
+}
+.card.dragging {
+  opacity: 0.5;
+  border-style: dashed;
+}
+.card:active { cursor: grabbing; }
+
+.card-contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.card-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgb(var(--slate-4));
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgb(var(--slate-9));
+}
+.card-avatar img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.card-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(var(--slate-12));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-message {
+  font-size: 12px;
+  color: rgb(var(--slate-11));
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.card-time {
+  font-size: 11px;
+  color: rgb(var(--slate-9));
+  margin-top: 4px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 13px;
+  color: rgb(var(--slate-9));
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 57px);
+  color: rgb(var(--slate-9));
+  font-size: 14px;
+}
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid rgb(var(--slate-5));
+  border-top-color: rgb(var(--blue-9));
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-banner {
+  background: rgb(var(--red-9) / 0.1);
+  color: rgb(var(--red-9));
+  border: 1px solid rgb(var(--red-9) / 0.2);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 16px;
+  font-size: 13px;
+}
+
+.dark .column { background: #1c1e21; }
+.dark .card { background: #282a2d; border-color: #383a3d; }
+.dark .card:hover { border-color: #5a5c60; }
+.dark .kanban-header { background: #1c1e21; border-color: #2c2e31; }
+.dark .kanban-header select,
+.dark .kanban-header .filter-state,
+.dark .kanban-header .refresh-btn { background: #282a2d; border-color: #383a3d; color: rgb(var(--slate-11)); }
+.dark .column-header { color: rgb(var(--slate-11)); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="loading"><div class="spinner"></div>Cargando tablero…</div>
+</div>
+
+<script>
+const API_CONFIG = '/api/kanban/config';
+const API_BOARD = '/api/kanban/board';
+
+let chatwootUrl = '';
+let allColumns = [];
+let activeFilter = '';
+
+const $ = (s, p) => (p || document).querySelector(s);
+const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now - d;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return `hace ${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `hace ${days}d`;
+}
+
+function initials(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+async function loadConfig() {
+  const res = await fetch(API_CONFIG);
+  const data = await res.json();
+  chatwootUrl = data.chatwoot_url || '';
+  allColumns = data.columns || [];
+  return data;
+}
+
+async function loadBoard(stage) {
+  const url = stage ? `${API_BOARD}?stage=${encodeURIComponent(stage)}` : API_BOARD;
+  const res = await fetch(url);
+  return res.json();
+}
+
+function openConversation(id) {
+  if (!chatwootUrl || !id) return;
+  const accountMatch = chatwootUrl.match(/\/accounts\/(\d+)/);
+  const accountId = accountMatch ? accountMatch[1] : '';
+  const base = chatwootUrl.replace(/\/+$/, '');
+  const url = accountId
+    ? `${base}/app/accounts/${accountId}/conversations/${id}`
+    : `https://chatwoot.ruki-bot.com/app/accounts/1/conversations/${id}`;
+  window.open(url, '_blank');
+}
+
+function renderBoard(data) {
+  const columns = data.columns || [];
+  const app = document.getElementById('app');
+
+  if (columns.length === 0) {
+    app.innerHTML = `<div class="error-banner">No hay columnas configuradas. Verifica que existe el custom attribute <strong>pipeline_01_etapas</strong> en Chatwoot.</div>`;
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="kanban-header">
+      <h1>Kanban</h1>
+      <select id="pipeline-select">
+        ${columns.map((c, i) => `<option value="${c.stage}">${c.stage}</option>`).join('')}
+        <option value="">Todas las etapas</option>
+      </select>
+      <select class="filter-state" id="state-filter">
+        <option value="">Todas las tareas</option>
+        <option value="tarea_activa">Activa</option>
+        <option value="tarea_hoy">Hoy</option>
+        <option value="tarea_vencida">Vencida</option>
+        <option value="tarea_cerrada">Cerrada</option>
+      </select>
+      <button class="refresh-btn" id="refresh-btn">⟳ Actualizar</button>
+    </div>
+    <div class="board" id="board"></div>
+  `;
+
+  document.getElementById('pipeline-select').addEventListener('change', () => {
+    activeFilter = '';
+    document.getElementById('state-filter').value = '';
+    refreshBoard();
+  });
+  document.getElementById('state-filter').addEventListener('change', () => {
+    refreshBoard();
+  });
+  document.getElementById('refresh-btn').addEventListener('click', () => refreshBoard());
+
+  refreshBoard();
+}
+
+async function refreshBoard() {
+  const stage = document.getElementById('pipeline-select').value;
+  const taskFilter = document.getElementById('state-filter').value;
+  activeFilter = taskFilter;
+
+  const board = document.getElementById('board');
+  board.innerHTML = `<div class="loading" style="min-height:200px"><div class="spinner"></div>Cargando…</div>`;
+
+  try {
+    const data = await loadBoard(stage || undefined);
+    renderColumns(data.columns || [], board);
+  } catch (err) {
+    board.innerHTML = `<div class="error-banner">Error al cargar: ${err.message}</div>`;
+  }
+}
+
+function renderColumns(columns, board) {
+  board.innerHTML = '';
+  columns.forEach(col => {
+    let cards = col.conversations || [];
+    if (activeFilter) {
+      cards = cards.filter(c => (c.custom_attributes.tarea_estado || '') === activeFilter);
+    }
+
+    const colEl = document.createElement('div');
+    colEl.className = 'column';
+    colEl.dataset.stage = col.stage;
+    colEl.innerHTML = `
+      <div class="column-header">
+        <span>${col.stage}</span>
+        <span class="count">${cards.length}</span>
+      </div>
+      <div class="column-body" data-stage="${col.stage}"></div>
+    `;
+
+    const body = colEl.querySelector('.column-body');
+    cards.forEach(card => {
+      body.appendChild(createCard(card));
+    });
+
+    setupDropZone(body, col.stage);
+    board.appendChild(colEl);
+  });
+}
+
+function createCard(card) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.draggable = true;
+  el.dataset.conversationId = card.id;
+  el.dataset.customAttributes = JSON.stringify(card.custom_attributes || {});
+
+  el.innerHTML = `
+    <div class="card-contact">
+      <div class="card-avatar">${card.thumbnail ? `<img src="${card.thumbnail}" alt="">` : initials(card.contact_name)}</div>
+      <div class="card-name">${card.contact_name}</div>
+    </div>
+    ${card.last_message ? `<div class="card-message">${escapeHtml(card.last_message)}</div>` : ''}
+    <div class="card-time">${timeAgo(card.updated_at)}</div>
+  `;
+
+  el.addEventListener('dragstart', (e) => {
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      id: card.id,
+      stage: el.closest('.column').dataset.stage,
+    }));
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+  el.addEventListener('click', () => openConversation(card.id));
+
+  return el;
+}
+
+function setupDropZone(body, targetStage) {
+  body.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    body.classList.add('drag-over');
+  });
+  body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
+  body.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    body.classList.remove('drag-over');
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    if (data.stage === targetStage) return;
+
+    const draggable = document.querySelector(`.card[data-conversation-id="${data.id}"]`);
+    if (draggable) draggable.remove();
+
+    try {
+      const res = await fetch(`/api/conversations/${data.id}/custom-attributes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_attributes: { pipeline_01_etapas: targetStage } }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      body.appendChild(createCard({ id: data.id, contact_name: '', custom_attributes: {} }));
+      updateCounts();
+    } catch (err) {
+      console.error('Drop failed:', err);
+    }
+  });
+}
+
+function updateCounts() {
+  $$('.column').forEach(col => {
+    const count = col.querySelectorAll('.card').length;
+    const badge = col.querySelector('.count');
+    if (badge) badge.textContent = count;
+  });
+}
+
+function escapeHtml(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+async function init() {
+  try {
+    const config = await loadConfig();
+    const data = await loadBoard();
+    renderBoard(data);
+  } catch (err) {
+    document.getElementById('app').innerHTML = `<div class="error-banner">Error al iniciar: ${err.message}</div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

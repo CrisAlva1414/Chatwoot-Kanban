@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.database import close_pool, init_pool
-from app.routers import api, conversations, webhooks
+from app.routers import api, conversations, kanban, webhooks
 
 
 @asynccontextmanager
@@ -17,6 +17,7 @@ app = FastAPI(title="Chatwoot Integration - i-labs", lifespan=lifespan)
 
 app.include_router(conversations.router)
 app.include_router(api.router)
+app.include_router(kanban.router)
 app.include_router(webhooks.router)
 
 
