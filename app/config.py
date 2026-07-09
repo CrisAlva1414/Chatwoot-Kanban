@@ -7,8 +7,19 @@ class Settings(BaseSettings):
     chatwoot_account_id: int
     chatwoot_bot_token: str
 
-    # Postgres
-    database_url: str
+    # Postgres — valores individuales, la URL se construye sola
+    postgres_user: str = "kanban"
+    postgres_password: str
+    postgres_db: str = "kanban"
+    postgres_host: str = "ruki-kanban-postgres"
+    postgres_port: int = 5432
+
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
 
     # Webhook
     chatwoot_webhook_secret: str = ""
