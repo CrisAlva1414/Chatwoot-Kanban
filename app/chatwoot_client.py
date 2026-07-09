@@ -67,7 +67,7 @@ class ChatwootClient:
         self, conversation_id: int, attributes: dict
     ) -> dict:
         """
-        POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/custom_attributes
+        POST a custom attributes en una conversación de Chatwoot
 
         No se usa en la Etapa 1 -- lo dejamos listo para la Etapa 2.
         """

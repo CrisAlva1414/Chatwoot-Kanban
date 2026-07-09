@@ -1,0 +1,5 @@
+[project]
+name = "ruki-plugins-kanban"
+version = "0.1.0"
+description = "Kanban / Task integration for Chatwoot CRM"
+requires-python = ">=3.12"

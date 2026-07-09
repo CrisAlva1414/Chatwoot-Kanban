@@ -1,0 +1,14 @@
+line-length = 88
+target-version = "py312"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "ARG", "RUF100"]
+ignore = ["B904"]  # raise sin from es aceptable si es intencional
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
