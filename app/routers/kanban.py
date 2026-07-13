@@ -69,7 +69,7 @@ async def kanban_board(stage: str | None = None):
                     "filter_operator": "equal_to",
                     "values": [s],
                     "query_operator": "AND",
-                    "custom_attribute_type": "conversation_attribute",
+                    "attribute_model": "custom_attributes",
                 }
             ]
         }
@@ -126,7 +126,7 @@ async def kanban_debug_raw(stage: str = "Potencial"):
                 "filter_operator": "equal_to",
                 "values": [stage],
                 "query_operator": "AND",
-                "custom_attribute_type": "conversation_attribute",
+                "attribute_model": "custom_attributes",
             }
         ]
     }
