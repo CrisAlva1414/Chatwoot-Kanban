@@ -311,7 +311,12 @@ async function loadConfig() {
 async function loadBoard(stage) {
   const url = stage ? `${API_BOARD}?stage=${encodeURIComponent(stage)}` : API_BOARD;
   const res = await fetch(url);
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data.detail || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
 }
 
 function openConversation(id) {
@@ -378,7 +383,11 @@ async function refreshBoard() {
     const data = await loadBoard(stage || undefined);
     renderColumns(data.columns || [], board);
   } catch (err) {
-    board.innerHTML = `<div class="error-banner">Error al cargar: ${err.message}</div>`;
+    const isChatwoot = err.message.includes('Chatwoot');
+    const hint = isChatwoot
+      ? 'Verifica que Chatwoot esté accesible y el bot-token sea válido.'
+      : 'Revisa los logs del contenedor para más detalles.';
+    board.innerHTML = `<div class="error-banner"><strong>Error:</strong> ${escapeHtml(err.message)}<br><small>${hint}</small></div>`;
   }
 }
 
@@ -493,7 +502,9 @@ async function init() {
     const data = await loadBoard();
     renderBoard(data);
   } catch (err) {
-    document.getElementById('app').innerHTML = `<div class="error-banner">Error al iniciar: ${err.message}</div>`;
+    const detail = err.message || 'Error desconocido';
+    document.getElementById('app').innerHTML =
+      `<div class="error-banner"><strong>Error al iniciar el tablero:</strong> ${escapeHtml(detail)}<br><small> revisa <code>/api/kanban/debug-status</code> para diagnóstico.</small></div>`;
   }
 }
 
