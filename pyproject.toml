@@ -3,3 +3,7 @@ name = "ruki-plugins-kanban"
 version = "0.1.0"
 description = "Kanban / Task integration for Chatwoot CRM"
 requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
