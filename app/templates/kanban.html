@@ -271,8 +271,8 @@ body {
 </div>
 
 <script>
-const API_CONFIG = '/api/kanban/config';
-const API_BOARD = '/api/kanban/board';
+const API_CONFIG = '/kanban/config';
+const API_BOARD = '/kanban/board';
 
 let chatwootUrl = '';
 let allColumns = [];
@@ -504,7 +504,7 @@ async function init() {
   } catch (err) {
     const detail = err.message || 'Error desconocido';
     document.getElementById('app').innerHTML =
-      `<div class="error-banner"><strong>Error al iniciar el tablero:</strong> ${escapeHtml(detail)}<br><small> revisa <code>/api/kanban/debug-status</code> para diagnóstico.</small></div>`;
+      `<div class="error-banner"><strong>Error al iniciar el tablero:</strong> ${escapeHtml(detail)}<br><small> revisa <code>/kanban/debug-status</code> para diagnóstico.</small></div>`;
   }
 }
 

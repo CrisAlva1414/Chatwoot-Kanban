@@ -8,14 +8,14 @@ from app.chatwoot_client import chatwoot_client
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["kanban"])
+router = APIRouter(prefix="/kanban", tags=["kanban"])
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 
 PIPELINE_ATTR_KEY = "pipeline_01_etapas"
 
 
-@router.get("/kanban", response_class=HTMLResponse)
+@router.get("", response_class=HTMLResponse)
 async def kanban_page():
     html = TEMPLATE_DIR / "kanban.html"
     if not html.exists():
@@ -23,7 +23,7 @@ async def kanban_page():
     return HTMLResponse(html.read_text())
 
 
-@router.get("/api/kanban/config")
+@router.get("/config")
 async def kanban_config():
     try:
         definitions = await chatwoot_client.get_custom_attribute_definitions()
@@ -43,7 +43,7 @@ async def kanban_config():
     }
 
 
-@router.get("/api/kanban/board")
+@router.get("/board")
 async def kanban_board(stage: str | None = None):
     try:
         definitions = await chatwoot_client.get_custom_attribute_definitions()
@@ -87,7 +87,7 @@ async def kanban_board(stage: str | None = None):
     return {"columns": columns, "chatwoot_url": chatwoot_client.base_url}
 
 
-@router.get("/api/kanban/debug-status")
+@router.get("/debug-status")
 async def kanban_debug_status():
     status = {"chatwoot_url": chatwoot_client.base_url, "checks": {}}
 
@@ -117,7 +117,7 @@ async def kanban_debug_status():
     return status
 
 
-@router.get("/api/kanban/debug-raw")
+@router.get("/debug-raw")
 async def kanban_debug_raw(stage: str = "Potencial"):
     payload = {
         "payload": [

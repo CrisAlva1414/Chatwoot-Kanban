@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 
 def test_kanban_config_returns_columns(client, mock_chatwoot_ok):
-    response = client.get("/api/kanban/config")
+    response = client.get("/kanban/config")
     assert response.status_code == 200
     data = response.json()
     assert data["columns"] == ["Potencial", "En evaluación", "Cerrado"]
@@ -16,18 +16,18 @@ def test_kanban_config_no_pipeline_attribute(client):
         )
         mock_client.base_url = "https://test.chatwoot.com"
 
-        response = client.get("/api/kanban/config")
+        response = client.get("/kanban/config")
         assert response.status_code == 200
         assert response.json()["columns"] == []
 
 
 def test_kanban_config_chatwoot_error(client, mock_chatwoot_error):
-    response = client.get("/api/kanban/config")
+    response = client.get("/kanban/config")
     assert response.status_code == 502
 
 
 def test_kanban_board_all_stages(client, mock_chatwoot_ok):
-    response = client.get("/api/kanban/board")
+    response = client.get("/kanban/board")
     assert response.status_code == 200
     data = response.json()
     assert len(data["columns"]) == 3
@@ -36,7 +36,7 @@ def test_kanban_board_all_stages(client, mock_chatwoot_ok):
 
 
 def test_kanban_board_single_stage(client, mock_chatwoot_ok):
-    response = client.get("/api/kanban/board?stage=Potencial")
+    response = client.get("/kanban/board?stage=Potencial")
     assert response.status_code == 200
     data = response.json()
     assert len(data["columns"]) == 1
@@ -44,7 +44,7 @@ def test_kanban_board_single_stage(client, mock_chatwoot_ok):
 
 
 def test_kanban_board_normalizes_conversations(client, mock_chatwoot_ok):
-    response = client.get("/api/kanban/board?stage=Potencial")
+    response = client.get("/kanban/board?stage=Potencial")
     card = response.json()["columns"][0]["conversations"][0]
     assert card["id"] == 101
     assert card["contact_name"] == "Juan Pérez"
@@ -53,7 +53,7 @@ def test_kanban_board_normalizes_conversations(client, mock_chatwoot_ok):
 
 
 def test_kanban_board_handles_flat_response(client, mock_chatwoot_flat_response):
-    response = client.get("/api/kanban/board?stage=Potencial")
+    response = client.get("/kanban/board?stage=Potencial")
     assert response.status_code == 200
     cards = response.json()["columns"][0]["conversations"]
     assert len(cards) == 1
@@ -61,18 +61,18 @@ def test_kanban_board_handles_flat_response(client, mock_chatwoot_flat_response)
 
 
 def test_kanban_board_empty_stage(client, mock_chatwoot_empty):
-    response = client.get("/api/kanban/board?stage=Potencial")
+    response = client.get("/kanban/board?stage=Potencial")
     assert response.status_code == 200
     assert response.json()["columns"][0]["conversations"] == []
 
 
 def test_kanban_board_chatwoot_error(client, mock_chatwoot_error):
-    response = client.get("/api/kanban/board")
+    response = client.get("/kanban/board")
     assert response.status_code == 502
 
 
 def test_debug_status_ok(client, mock_chatwoot_ok):
-    response = client.get("/api/kanban/debug-status")
+    response = client.get("/kanban/debug-status")
     assert response.status_code == 200
     data = response.json()
     assert data["checks"]["chatwoot_connection"] == "ok"
@@ -85,7 +85,7 @@ def test_debug_status_ok(client, mock_chatwoot_ok):
 
 
 def test_debug_status_chatwoot_error(client, mock_chatwoot_error):
-    response = client.get("/api/kanban/debug-status")
+    response = client.get("/kanban/debug-status")
     assert response.status_code == 200
     data = response.json()
     assert data["checks"]["chatwoot_connection"] == "failed"
@@ -93,7 +93,7 @@ def test_debug_status_chatwoot_error(client, mock_chatwoot_error):
 
 
 def test_debug_raw_returns_parsed(client, mock_chatwoot_ok):
-    response = client.get("/api/kanban/debug-raw?stage=Potencial")
+    response = client.get("/kanban/debug-raw?stage=Potencial")
     assert response.status_code == 200
     data = response.json()
     assert "raw" in data
