@@ -34,3 +34,4 @@ Bitácora de trabajo para que el LLM retome contexto rápidamente:
 |---|-------|------|---------|
 | 001 | 2026-07-09 | Factibilidad arquitectura Kanban/Tareas (Opus 4.8) | [sesiones/001-2026-07-09-factibilidad-arquitectura-kanban-tareas.md](sesiones/001-2026-07-09-factibilidad-arquitectura-kanban-tareas.md) |
 | 002 | 2026-07-09 | Inicialización Docker, docs, lint | [sesiones/002-2026-07-09-inicializacion-docker-y-docs.md](sesiones/002-2026-07-09-inicializacion-docker-y-docs.md) |
+| 003 | 2026-07-13 | Fix producción, tests, seguridad Docker | [sesiones/003-2026-07-13-fix-produccion-y-seguridad-docker.md](sesiones/003-2026-07-13-fix-produccion-y-seguridad-docker.md) |
