@@ -4,7 +4,9 @@ from tests.conftest import _sign
 
 
 def test_webhook_valid_signature(client):
-    body = b'{"id": "evt-001", "event": "conversation_updated", "conversation": {"id": 1}}'
+    body = (
+        b'{"id": "evt-001", "event": "conversation_updated", "conversation": {"id": 1}}'
+    )
     sig = _sign(body, "test-secret")
 
     mock_pool = AsyncMock()
@@ -55,7 +57,9 @@ def test_webhook_missing_event_id(client):
 
 
 def test_webhook_duplicate_event(client):
-    body = b'{"id": "evt-003", "event": "conversation_updated", "conversation": {"id": 1}}'
+    body = (
+        b'{"id": "evt-003", "event": "conversation_updated", "conversation": {"id": 1}}'
+    )
     sig = _sign(body, "test-secret")
 
     mock_pool = AsyncMock()

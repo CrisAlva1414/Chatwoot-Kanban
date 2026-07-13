@@ -12,3 +12,4 @@ ignore = ["B904"]  # raise sin from es aceptable si es intencional
 
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"tests/*" = ["ARG001"]

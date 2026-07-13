@@ -12,7 +12,7 @@ os.environ.setdefault("CHATWOOT_BOT_TOKEN", "test-token")
 os.environ.setdefault("CHATWOOT_WEBHOOK_SECRET", "test-secret")
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
 
-from app.main import app  # noqa: E402
+from app.main import app
 
 MOCK_ATTRIBUTE_DEFINITIONS = [
     {
@@ -65,8 +65,9 @@ def client():
 
 @pytest.fixture(autouse=True)
 def _patch_lifespan():
-    with patch("app.main.init_pool", new_callable=AsyncMock), patch(
-        "app.main.close_pool", new_callable=AsyncMock
+    with (
+        patch("app.main.init_pool", new_callable=AsyncMock),
+        patch("app.main.close_pool", new_callable=AsyncMock),
     ):
         yield
 
@@ -77,9 +78,7 @@ def mock_chatwoot_ok():
         mock_client.get_custom_attribute_definitions = AsyncMock(
             return_value=MOCK_ATTRIBUTE_DEFINITIONS
         )
-        mock_client.filter_conversations = AsyncMock(
-            return_value=MOCK_FILTER_RESPONSE
-        )
+        mock_client.filter_conversations = AsyncMock(return_value=MOCK_FILTER_RESPONSE)
         mock_client.base_url = "https://test.chatwoot.com"
         yield mock_client
 
