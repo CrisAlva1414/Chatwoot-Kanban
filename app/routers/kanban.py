@@ -69,7 +69,6 @@ async def kanban_board(stage: str | None = None):
                     "filter_operator": "equal_to",
                     "values": [s],
                     "query_operator": "AND",
-                    "attribute_model": "custom_attributes",
                 }
             ]
         }
@@ -174,15 +173,15 @@ def _extract_conversation_list(resp: dict | list) -> list:
 
 
 def _normalize_conversation(conv: dict) -> dict:
-    contact = conv.get("contact") or {}
+    sender = (conv.get("meta") or {}).get("sender") or {}
     messages = conv.get("messages") or []
     last_msg = messages[-1] if messages else {}
 
     return {
         "id": conv.get("id"),
-        "contact_name": contact.get("name") or conv.get("contact_name") or "",
-        "thumbnail": contact.get("thumbnail") or conv.get("thumbnail") or "",
-        "last_message": last_msg.get("content") or last_msg.get("text") or "",
+        "contact_name": sender.get("name") or "",
+        "thumbnail": sender.get("thumbnail") or "",
+        "last_message": last_msg.get("content") or "",
         "updated_at": conv.get("updated_at") or "",
         "custom_attributes": conv.get("custom_attributes") or {},
     }

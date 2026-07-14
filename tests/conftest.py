@@ -34,7 +34,12 @@ MOCK_FILTER_RESPONSE = {
         "conversations": [
             {
                 "id": 101,
-                "contact": {"name": "Juan Pérez", "thumbnail": ""},
+                "meta": {
+                    "sender": {
+                        "name": "Juan Pérez",
+                        "thumbnail": "",
+                    }
+                },
                 "messages": [
                     {"content": "Hola, necesito ayuda", "text": "Hola, necesito ayuda"}
                 ],
@@ -43,7 +48,12 @@ MOCK_FILTER_RESPONSE = {
             },
             {
                 "id": 102,
-                "contact": {"name": "María López", "thumbnail": ""},
+                "meta": {
+                    "sender": {
+                        "name": "María López",
+                        "thumbnail": "",
+                    }
+                },
                 "messages": [{"content": "Consulta sobre precio", "text": ""}],
                 "updated_at": "2026-07-12T15:30:00Z",
                 "custom_attributes": {},
@@ -120,7 +130,12 @@ def mock_chatwoot_flat_response():
                 "conversations": [
                     {
                         "id": 201,
-                        "contact": {"name": "Pedro Soto", "thumbnail": ""},
+                        "meta": {
+                            "sender": {
+                                "name": "Pedro Soto",
+                                "thumbnail": "",
+                            }
+                        },
                         "messages": [],
                         "updated_at": "2026-07-10T08:00:00Z",
                         "custom_attributes": {"tarea_estado": "tarea_hoy"},
