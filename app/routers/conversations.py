@@ -44,7 +44,7 @@ async def filter_conversations(attribute_key: str, value: str):
                 "attribute_key": attribute_key,
                 "filter_operator": "equal_to",
                 "values": [value],
-                "query_operator": "AND",
+                "query_operator": None,
             }
         ]
     }

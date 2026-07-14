@@ -68,7 +68,7 @@ async def kanban_board(stage: str | None = None):
                     "attribute_key": PIPELINE_ATTR_KEY,
                     "filter_operator": "equal_to",
                     "values": [s],
-                    "query_operator": "AND",
+                    "query_operator": None,
                 }
             ]
         }
@@ -124,8 +124,7 @@ async def kanban_debug_raw(stage: str = "Potencial"):
                 "attribute_key": PIPELINE_ATTR_KEY,
                 "filter_operator": "equal_to",
                 "values": [stage],
-                "query_operator": "AND",
-                "attribute_model": "custom_attributes",
+                "query_operator": None,
             }
         ]
     }
