@@ -84,7 +84,14 @@ def _patch_lifespan():
 
 @pytest.fixture()
 def mock_chatwoot_ok():
-    with patch("app.routers.kanban.chatwoot_client") as mock_client:
+    with (
+        patch("app.routers.kanban.chatwoot_client") as mock_client,
+        patch(
+            "app.routers.kanban.get_tasks_for_conversations",
+            new_callable=AsyncMock,
+            return_value={},
+        ),
+    ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
             return_value=MOCK_ATTRIBUTE_DEFINITIONS
         )
@@ -95,7 +102,14 @@ def mock_chatwoot_ok():
 
 @pytest.fixture()
 def mock_chatwoot_empty():
-    with patch("app.routers.kanban.chatwoot_client") as mock_client:
+    with (
+        patch("app.routers.kanban.chatwoot_client") as mock_client,
+        patch(
+            "app.routers.kanban.get_tasks_for_conversations",
+            new_callable=AsyncMock,
+            return_value={},
+        ),
+    ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
             return_value=MOCK_ATTRIBUTE_DEFINITIONS
         )
@@ -121,7 +135,14 @@ def mock_chatwoot_error():
 
 @pytest.fixture()
 def mock_chatwoot_flat_response():
-    with patch("app.routers.kanban.chatwoot_client") as mock_client:
+    with (
+        patch("app.routers.kanban.chatwoot_client") as mock_client,
+        patch(
+            "app.routers.kanban.get_tasks_for_conversations",
+            new_callable=AsyncMock,
+            return_value={},
+        ),
+    ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
             return_value=MOCK_ATTRIBUTE_DEFINITIONS
         )

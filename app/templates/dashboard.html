@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: Inter, -apple-system, system-ui, sans-serif;
+  font-size: 14px;
+  color: #1c1e21;
+  background: #f7f7f7;
+}
+
+.header {
+  background: #fff;
+  border-bottom: 1px solid #ececec;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header h1 { font-size: 15px; font-weight: 600; }
+.header .back-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px solid #e2e3e7;
+  border-radius: 6px;
+  background: #fff;
+  color: #60646c;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.header .back-btn:hover { background: #ebebec; }
+
+.container { padding: 24px 16px; max-width: 960px; margin: 0 auto; }
+
+.card-section {
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.card-section h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #60646c;
+  margin-bottom: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  background: #f9f9fb;
+  border: 1px solid #ebebec;
+  border-radius: 6px;
+  padding: 12px;
+}
+.stat-card .stat-label {
+  font-size: 11px;
+  color: #8a8f9b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.stat-card .stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1c1e21;
+  margin-top: 2px;
+}
+.stat-card .stat-sub {
+  font-size: 11px;
+  color: #8a8f9b;
+  margin-top: 2px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  font-weight: 600;
+  color: #60646c;
+  padding: 8px 10px;
+  border-bottom: 1px solid #ebebec;
+}
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f2f4;
+  color: #1c1e21;
+}
+tr:hover td { background: #f9f9fb; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-create { background: #e6f7ef; color: #12a594; }
+.badge-close { background: #e8f0fe; color: #2781f6; }
+.badge-edit { background: #fef3cd; color: #b07800; }
+.badge-overwrite { background: #fde8ea; color: #e54666; }
+.badge-cron { background: #f0f0f2; color: #60646c; }
+.badge-stage { background: #e8f0fe; color: #2781f6; }
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #8a8f9b;
+  font-size: 14px;
+}
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid #e2e3e7;
+  border-top-color: #2781f6;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { text-align: center; padding: 24px; color: #8a8f9b; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/kanban" class="back-btn">Volver al Kanban</a>
+  <h1>Dashboard de Agentes</h1>
+</div>
+
+<div class="container" id="app">
+  <div class="loading"><div class="spinner"></div>Cargando…</div>
+</div>
+
+<script>
+const API_STATS = '/kanban/stats';
+const API_HISTORY = '/kanban/stats/history';
+
+function escapeHtml(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+function actionBadge(action) {
+  const map = {
+    create: { label: 'Creada', cls: 'badge-create' },
+    close: { label: 'Cerrada', cls: 'badge-close' },
+    edit: { label: 'Editada', cls: 'badge-edit' },
+    task_overwritten: { label: 'Sobrescrita', cls: 'badge-overwrite' },
+    cron_tick: { label: 'Cron', cls: 'badge-cron' },
+    cron_transition: { label: 'Cron', cls: 'badge-cron' },
+    stage_change: { label: 'Movida', cls: 'badge-stage' },
+  };
+  const m = map[action] || { label: action, cls: 'badge-cron' };
+  return `<span class="badge ${m.cls}">${m.label}</span>`;
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now - d;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return `hace ${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `hace ${days}d`;
+}
+
+async function loadData() {
+  const [statsRes, historyRes] = await Promise.all([
+    fetch(API_STATS),
+    fetch(API_HISTORY),
+  ]);
+  const stats = await statsRes.json();
+  const history = await historyRes.json();
+  render(stats.agents || [], history.history || []);
+}
+
+function render(agents, history) {
+  const app = document.getElementById('app');
+
+  const totalCreated = agents.reduce((s, a) => s + Number(a.tasks_created), 0);
+  const totalClosed = agents.reduce((s, a) => s + Number(a.tasks_closed), 0);
+  const totalOverwritten = agents.reduce((s, a) => s + Number(a.tasks_overwritten), 0);
+
+  app.innerHTML = `
+    <div class="card-section">
+      <h2>Resumen</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Tareas creadas</div>
+          <div class="stat-value">${totalCreated}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tareas cerradas</div>
+          <div class="stat-value">${totalClosed}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tareas sobrescritas</div>
+          <div class="stat-value">${totalOverwritten}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Agentes activos</div>
+          <div class="stat-value">${agents.length}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <h2>Rendimiento por agente</h2>
+      ${agents.length === 0
+        ? '<div class="empty">No hay datos de agentes todavía.</div>'
+        : `<table>
+          <thead>
+            <tr>
+              <th>Agente</th>
+              <th>Creadas</th>
+              <th>Cerradas</th>
+              <th>Sobrescritas</th>
+              <th>Cierre OK</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${agents.map(a => `
+              <tr>
+                <td><strong>${escapeHtml(a.nombre)}</strong><br><small style="color:#8a8f9b">${escapeHtml(a.email)}</small></td>
+                <td>${a.tasks_created}</td>
+                <td>${a.tasks_closed}</td>
+                <td>${a.tasks_overwritten}</td>
+                <td>${a.successful_closes}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`
+      }
+    </div>
+
+    <div class="card-section">
+      <h2>Historial reciente</h2>
+      ${history.length === 0
+        ? '<div class="empty">No hay eventos registrados todavía.</div>'
+        : `<table>
+          <thead>
+            <tr>
+              <th>Agente</th>
+              <th>Acción</th>
+              <th>Conversación</th>
+              <th>Sync</th>
+              <th>Cuándo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${history.map(h => `
+              <tr>
+                <td>${escapeHtml(h.actor_name)}</td>
+                <td>${actionBadge(h.action)}</td>
+                <td>${h.conversation_id || '—'}</td>
+                <td>${h.chatwoot_call_ok === true ? '✓' : h.chatwoot_call_ok === false ? '✗' : '—'}</td>
+                <td>${timeAgo(h.created_at)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`
+      }
+    </div>
+  `;
+}
+
+loadData().catch(err => {
+  document.getElementById('app').innerHTML =
+    `<div style="background:#fde8ea;color:#e54666;border:1px solid #f5c6cb;border-radius:6px;padding:10px 14px;margin:16px;font-size:13px;">
+      <strong>Error:</strong> ${escapeHtml(err.message)}
+    </div>`;
+});
+</script>
+</body>
+</html>

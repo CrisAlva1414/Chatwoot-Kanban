@@ -220,6 +220,23 @@ body {
   margin-top: 4px;
 }
 
+.card-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.card-task-label {
+  font-weight: 600;
+}
+.card-task-date {
+  opacity: 0.8;
+}
+
 .empty-state {
   text-align: center;
   padding: 24px 12px;
@@ -244,6 +261,11 @@ body {
   margin-right: 8px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .error-banner {
   background: rgb(var(--red-9) / 0.1);
@@ -273,6 +295,7 @@ body {
 <script>
 const API_CONFIG = '/kanban/config';
 const API_BOARD = '/kanban/board';
+const API_MOVE_STAGE = '/kanban/board';
 
 let chatwootUrl = '';
 let allColumns = [];
@@ -298,6 +321,28 @@ function timeAgo(dateStr) {
 function initials(name) {
   if (!name) return '?';
   return name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+function renderTaskBadge(task) {
+  if (!task) return '';
+  const colors = {
+    tarea_activa: { bg: 'rgb(var(--blue-9) / 0.1)', text: 'rgb(var(--blue-9))' },
+    tarea_hoy: { bg: 'rgb(var(--amber-9) / 0.15)', text: 'rgb(180 120 0)' },
+    tarea_vencida: { bg: 'rgb(var(--red-9) / 0.1)', text: 'rgb(var(--red-9))' },
+  };
+  const labels = {
+    tarea_activa: 'Activa',
+    tarea_hoy: 'Hoy',
+    tarea_vencida: 'Vencida',
+  };
+  const c = colors[task.estado] || colors.tarea_activa;
+  const label = labels[task.estado] || task.estado;
+  return `
+    <div class="card-task" style="background:${c.bg};color:${c.text};border:1px solid ${c.text};">
+      <span class="card-task-label">${label}</span>
+      ${task.fecha_vencimiento ? `<span class="card-task-date">${task.fecha_vencimiento}</span>` : ''}
+    </div>
+  `;
 }
 
 async function loadConfig() {
@@ -353,7 +398,8 @@ function renderBoard(data) {
         <option value="tarea_vencida">Vencida</option>
         <option value="tarea_cerrada">Cerrada</option>
       </select>
-      <button class="refresh-btn" id="refresh-btn">⟳ Actualizar</button>
+      <button class="refresh-btn" id="refresh-btn">Actualizar</button>
+      <a href="/kanban/dashboard" class="refresh-btn" id="dashboard-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">Dashboard</a>
     </div>
     <div class="board" id="board"></div>
   `;
@@ -433,6 +479,7 @@ function createCard(card) {
       <div class="card-name">${card.contact_name}</div>
     </div>
     ${card.last_message ? `<div class="card-message">${escapeHtml(card.last_message)}</div>` : ''}
+    ${card.task ? renderTaskBadge(card.task) : ''}
     <div class="card-time">${timeAgo(card.updated_at)}</div>
   `;
 
@@ -465,19 +512,37 @@ function setupDropZone(body, targetStage) {
     if (data.stage === targetStage) return;
 
     const draggable = document.querySelector(`.card[data-conversation-id="${data.id}"]`);
-    if (draggable) draggable.remove();
+    if (!draggable) return;
+
+    const originalStage = draggable.closest('.column').dataset.stage;
 
     try {
-      const res = await fetch(`/api/conversations/${data.id}/custom-attributes`, {
-        method: 'POST',
+      const res = await fetch(`${API_MOVE_STAGE}/${data.id}/stage`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ custom_attributes: { pipeline_01_etapas: targetStage } }),
+        body: JSON.stringify({ stage: targetStage }),
       });
-      if (!res.ok) throw new Error(await res.text());
-      body.appendChild(createCard({ id: data.id, contact_name: '', custom_attributes: {} }));
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Error desconocido' }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      draggable.remove();
+      const targetBody = document.querySelector(`.column-body[data-stage="${targetStage}"]`);
+      if (targetBody) {
+        const cardData = {
+          id: data.id,
+          contact_name: draggable.querySelector('.card-name')?.textContent || '',
+          thumbnail: draggable.querySelector('img')?.src || '',
+          last_message: draggable.querySelector('.card-message')?.textContent || '',
+          updated_at: new Date().toISOString(),
+          custom_attributes: JSON.parse(draggable.dataset.customAttributes || '{}'),
+        };
+        targetBody.insertBefore(createCard(cardData), targetBody.firstChild);
+      }
       updateCounts();
     } catch (err) {
       console.error('Drop failed:', err);
+      showToast(`Error al mover: ${err.message}`, 'error');
     }
   });
 }
@@ -494,6 +559,29 @@ function escapeHtml(text) {
   const d = document.createElement('div');
   d.textContent = text;
   return d.innerHTML;
+}
+
+function showToast(message, type = 'info') {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.style.cssText = `
+    position: fixed; bottom: 16px; right: 16px; z-index: 100;
+    padding: 10px 16px; border-radius: 6px; font-size: 13px;
+    color: #fff; max-width: 340px; word-break: break-word;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    animation: toastIn 0.2s ease-out;
+  `;
+  if (type === 'error') {
+    toast.style.background = 'rgb(var(--red-9))';
+  } else {
+    toast.style.background = 'rgb(var(--green-9))';
+  }
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
 }
 
 async function init() {

@@ -17,6 +17,7 @@
 | 009 | Estructura del repositorio | Aceptado | [adr/009-estructura-del-repositorio.md](adr/009-estructura-del-repositorio.md) |
 | 010 | Deploy y exposición (Docker + Tunnel) | Aceptado | [adr/010-deploy-y-exposicion.md](adr/010-deploy-y-exposicion.md) |
 | 011 | Integración con Chatwoot por etapas | Aceptado | [adr/011-integracion-con-chatwoot.md](adr/011-integracion-con-chatwoot.md) |
+| 012 | Operaciones de escritura y sistema de tareas | Aceptado | [adr/012-operaciones-escritura-kanban.md](adr/012-operaciones-escritura-kanban.md) |
 
 ## Convenciones
 
@@ -35,3 +36,4 @@ Bitácora de trabajo para que el LLM retome contexto rápidamente:
 | 001 | 2026-07-09 | Factibilidad arquitectura Kanban/Tareas (Opus 4.8) | [sesiones/001-2026-07-09-factibilidad-arquitectura-kanban-tareas.md](sesiones/001-2026-07-09-factibilidad-arquitectura-kanban-tareas.md) |
 | 002 | 2026-07-09 | Inicialización Docker, docs, lint | [sesiones/002-2026-07-09-inicializacion-docker-y-docs.md](sesiones/002-2026-07-09-inicializacion-docker-y-docs.md) |
 | 003 | 2026-07-13 | Fix producción, tests, seguridad Docker | [sesiones/003-2026-07-13-fix-produccion-y-seguridad-docker.md](sesiones/003-2026-07-13-fix-produccion-y-seguridad-docker.md) |
+| 004 | 2026-07-15 | Drag & drop fix, sistema de tareas, dashboard | [sesiones/004-2026-07-15-drag-drop-tareas-dashboard.md](sesiones/004-2026-07-15-drag-drop-tareas-dashboard.md) |
