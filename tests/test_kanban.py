@@ -49,7 +49,7 @@ def test_kanban_board_normalizes_conversations(client, mock_chatwoot_ok):
     assert card["id"] == 101
     assert card["contact_name"] == "Juan Pérez"
     assert card["last_message"] == "Hola, necesito ayuda"
-    expected_attrs = {"kanban_view_fecha_termino": "2026-07-20T04:00:00.000Z"}
+    expected_attrs = {"kanban_view_fecha_termino": "2026-07-20T23:59:59.999Z"}
     assert card["custom_attributes"] == expected_attrs
 
 
@@ -339,4 +339,4 @@ def test_cron_tick_endpoint(client):
 def test_dashboard_page(client):
     response = client.get("/kanban/dashboard")
     assert response.status_code == 200
-    assert "Dashboard de Agentes" in response.text
+    assert "Volver al Kanban" in response.text

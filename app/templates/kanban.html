@@ -550,6 +550,7 @@ let chatwootUrl = '';
 let allColumns = [];
 let activeFilter = '';
 let currentModalCardId = null;
+let pollingTimer = null;
 
 const $ = (s, p) => (p || document).querySelector(s);
 const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
@@ -580,11 +581,31 @@ function initials(name) {
   return name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
+function computeTaskEstado(task) {
+  if (!task) return null;
+  if (task.estado === 'tarea_cerrada') {
+    if (!task.cerrado_en) return 'tarea_cerrada';
+    const cerrado = new Date(task.cerrado_en);
+    const ahora = new Date();
+    if (ahora - cerrado < 24 * 60 * 60 * 1000) return 'tarea_cerrada';
+    return null;
+  }
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const vence = new Date(task.fecha_vencimiento);
+  vence.setHours(0, 0, 0, 0);
+  const diffMs = vence - hoy;
+  const diffDias = diffMs / (1000 * 60 * 60 * 24);
+  if (diffDias < 0) return 'tarea_vencida';
+  if (diffDias === 0) return 'tarea_hoy';
+  return 'tarea_activa';
+}
+
 function renderTaskBadge(task) {
   if (!task) return '';
-  const now = new Date();
-  const vencimiento = task.fecha_vencimiento ? new Date(task.fecha_vencimiento) : null;
-  const isOverdue = vencimiento && vencimiento < now && task.estado !== 'tarea_cerrada';
+  const estado = computeTaskEstado(task);
+  if (!estado) return '';
+  const isOverdue = estado === 'tarea_vencida';
   const cls = isOverdue ? 'card-task overdue' : 'card-task';
   const dateStr = task.fecha_vencimiento
     ? new Date(task.fecha_vencimiento).toLocaleDateString('es-CL')
@@ -631,6 +652,7 @@ function openConversation(id) {
 
 function openTaskModal(cardData) {
   currentModalCardId = cardData.id;
+  stopPolling();
   const task = cardData.task || null;
   const root = document.getElementById('task-modal-root');
 
@@ -653,9 +675,10 @@ function openTaskModal(cardData) {
 
   let taskSection = '';
   if (task) {
-    const tc = taskColors[task.estado] || taskColors.tarea_activa;
-    const tl = taskLabels[task.estado] || task.estado;
-    const isClosed = task.estado === 'tarea_cerrada';
+    const computedEstado = computeTaskEstado(task);
+    const tc = taskColors[computedEstado] || taskColors.tarea_activa;
+    const tl = taskLabels[computedEstado] || computedEstado;
+    const isClosed = computedEstado === 'tarea_cerrada';
     const fechaDisplay = task.fecha_vencimiento
       ? new Date(task.fecha_vencimiento).toLocaleDateString('es-CL')
       : '—';
@@ -702,19 +725,20 @@ function openTaskModal(cardData) {
     `;
   }
 
-  const taskStatus = task
-    ? `<span class="modal-task-status" style="background:${(taskColors[task.estado] || taskColors.tarea_activa).bg};color:${(taskColors[task.estado] || taskColors.tarea_activa).text}">${taskLabels[task.estado] || task.estado}</span>`
+  const computedEstado = task ? computeTaskEstado(task) : null;
+  const taskStatus = task && computedEstado
+    ? `<span class="modal-task-status" style="background:${(taskColors[computedEstado] || taskColors.tarea_activa).bg};color:${(taskColors[computedEstado] || taskColors.tarea_activa).text}">${taskLabels[computedEstado] || computedEstado}</span>`
     : '<span style="font-size:12px;color:rgb(var(--text-muted))">Sin tarea</span>';
 
   let footerButtons = '';
-  if (task && task.estado !== 'tarea_cerrada') {
+  if (task && computedEstado && computedEstado !== 'tarea_cerrada') {
     footerButtons = `
       <button class="btn-danger" id="modal-close-task">Cerrar tarea</button>
       <div class="spacer"></div>
       <button class="btn-secondary" id="modal-cancel">Cancelar</button>
       <button class="btn-primary" id="modal-save">Guardar</button>
     `;
-  } else if (task && task.estado === 'tarea_cerrada') {
+  } else if (task && computedEstado === 'tarea_cerrada') {
     footerButtons = `
       <div class="spacer"></div>
       <button class="btn-secondary" id="modal-cancel">Cerrar</button>
@@ -760,7 +784,7 @@ function openTaskModal(cardData) {
   document.getElementById('modal-close-x').addEventListener('click', closeTaskModal);
   document.getElementById('modal-cancel')?.addEventListener('click', closeTaskModal);
 
-  if (task && task.estado !== 'tarea_cerrada') {
+  if (task && computedEstado && computedEstado !== 'tarea_cerrada') {
     document.getElementById('modal-save')?.addEventListener('click', () => saveTask(task.id));
     document.getElementById('modal-close-task')?.addEventListener('click', () => closeTaskAction(task.id));
   } else if (!task) {
@@ -771,6 +795,7 @@ function openTaskModal(cardData) {
 function closeTaskModal() {
   document.getElementById('task-modal-root').innerHTML = '';
   currentModalCardId = null;
+  startPolling();
 }
 
 async function createTask(conversationId) {
@@ -918,8 +943,9 @@ function renderColumns(columns, board) {
     let cards = col.conversations || [];
     if (activeFilter) {
       cards = cards.filter(c => {
-        if (!c.task) return activeFilter === 'sin_tarea';
-        return c.task.estado === activeFilter;
+        const estado = computeTaskEstado(c.task);
+        if (activeFilter === 'sin_tarea') return !estado;
+        return estado === activeFilter;
       });
     }
 
@@ -950,6 +976,7 @@ function createCard(card) {
   el.draggable = true;
   el.dataset.conversationId = card.id;
   el.dataset.customAttributes = JSON.stringify(card.custom_attributes || {});
+  if (card.task) el.dataset.task = JSON.stringify(card.task);
 
   el.innerHTML = `
     <div class="card-contact">
@@ -1021,6 +1048,7 @@ function setupDropZone(body, targetStage) {
           last_message: draggable.querySelector('.card-message')?.textContent || '',
           updated_at: new Date().toISOString(),
           custom_attributes: JSON.parse(draggable.dataset.customAttributes || '{}'),
+          task: draggable.dataset.task ? JSON.parse(draggable.dataset.task) : null,
         };
         targetBody.insertBefore(createCard(cardData), targetBody.firstChild);
       }
@@ -1066,11 +1094,32 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.remove(), 3500);
 }
 
+function startPolling() {
+  stopPolling();
+  pollingTimer = setInterval(async () => {
+    if (currentModalCardId) return;
+    try {
+      const data = await loadBoard();
+      renderBoard(data);
+    } catch (err) {
+      console.error('Polling refresh failed:', err);
+    }
+  }, 30000);
+}
+
+function stopPolling() {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+}
+
 async function init() {
   try {
     const config = await loadConfig();
     const data = await loadBoard();
     renderBoard(data);
+    startPolling();
   } catch (err) {
     const detail = err.message || 'Error desconocido';
     document.getElementById('app').innerHTML =

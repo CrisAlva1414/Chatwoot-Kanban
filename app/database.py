@@ -236,7 +236,10 @@ async def get_tasks_for_conversations(conversation_ids: list[int]) -> dict:
                FROM tareas t
                JOIN agentes a ON a.id = t.creado_por
                WHERE t.conversation_id = ANY($1)
-               AND t.estado NOT IN ('tarea_cerrada', 'tarea_vencida')""",
+               AND (
+                 t.estado NOT IN ('tarea_cerrada', 'tarea_vencida')
+                 OR t.cerrado_en >= now() - interval '24 hours'
+               )""",
             conversation_ids,
         )
         return {row["conversation_id"]: dict(row) for row in rows}
@@ -280,7 +283,7 @@ async def cron_tick() -> dict:
         try:
             from app.chatwoot_client import chatwoot_client
 
-            fecha_iso = task["fecha_vencimiento"].isoformat() + "T04:00:00.000Z"
+            fecha_iso = task["fecha_vencimiento"].isoformat() + "T23:59:59.999Z"
             await chatwoot_client.safe_update_custom_attributes(
                 task["conversation_id"],
                 {"kanban_view_fecha_termino": fecha_iso},

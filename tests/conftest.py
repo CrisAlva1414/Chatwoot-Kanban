@@ -45,7 +45,7 @@ MOCK_FILTER_RESPONSE = {
                 ],
                 "updated_at": "2026-07-13T10:00:00Z",
                 "custom_attributes": {
-                    "kanban_view_fecha_termino": "2026-07-20T04:00:00.000Z"
+                    "kanban_view_fecha_termino": "2026-07-20T23:59:59.999Z"
                 },
             },
             {
@@ -165,7 +165,7 @@ def mock_chatwoot_flat_response():
                         "messages": [],
                         "updated_at": "2026-07-10T08:00:00Z",
                         "custom_attributes": {
-                            "kanban_view_fecha_termino": "2026-07-25T04:00:00.000Z"
+                            "kanban_view_fecha_termino": "2026-07-25T23:59:59.999Z"
                         },
                     }
                 ]

@@ -153,7 +153,7 @@ async def create_task(body: CreateTaskRequest, request: Request):
 
     chatwoot_ok = True
     try:
-        fecha_iso = body.fecha_vencimiento.isoformat() + "T04:00:00.000Z"
+        fecha_iso = body.fecha_vencimiento.isoformat() + "T23:59:59.999Z"
         attrs = {
             TASK_MSG_ATTR_KEY: body.mensaje,
             TASK_DATE_ATTR_KEY: fecha_iso,
@@ -207,7 +207,7 @@ async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Req
     try:
         conv_id = previous.get("conversation_id")
         if conv_id:
-            fecha_iso = body.fecha_vencimiento.isoformat() + "T04:00:00.000Z"
+            fecha_iso = body.fecha_vencimiento.isoformat() + "T23:59:59.999Z"
             attrs = {
                 TASK_MSG_ATTR_KEY: body.mensaje,
                 TASK_DATE_ATTR_KEY: fecha_iso,
