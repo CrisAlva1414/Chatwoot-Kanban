@@ -288,21 +288,238 @@ body {
   margin: 16px;
   font-size: 13px;
 }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.4);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: rgb(var(--bg-card));
+  border: 1px solid rgb(var(--border));
+  border-radius: 8px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  animation: modalIn 0.15s ease-out;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgb(var(--border));
+}
+.modal-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgb(var(--text-primary));
+}
+.modal-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: rgb(var(--text-muted));
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+}
+.modal-close:hover {
+  background: rgb(var(--bg-surface));
+  color: rgb(var(--text-primary));
+}
+
+.modal-body {
+  padding: 16px;
+}
+
+.modal-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.modal-contact .card-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+.modal-contact .card-name {
+  font-size: 14px;
+}
+.modal-contact a {
+  font-size: 12px;
+  color: rgb(var(--accent));
+  text-decoration: none;
+}
+.modal-contact a:hover {
+  text-decoration: underline;
+}
+
+.modal-field {
+  margin-bottom: 12px;
+}
+.modal-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(var(--text-secondary));
+  margin-bottom: 4px;
+}
+.modal-field input,
+.modal-field textarea {
+  width: 100%;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid rgb(var(--border));
+  border-radius: 6px;
+  background: rgb(var(--bg-card));
+  color: rgb(var(--text-primary));
+  outline: none;
+  font-family: inherit;
+}
+.modal-field input:focus,
+.modal-field textarea:focus {
+  border-color: rgb(var(--accent));
+  box-shadow: 0 0 0 2px rgb(var(--accent-focus));
+}
+.modal-field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.modal-task-info {
+  background: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--border));
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.modal-task-info .task-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.modal-task-info .task-row:last-child {
+  margin-bottom: 0;
+}
+.modal-task-info .task-label {
+  color: rgb(var(--text-secondary));
+}
+.modal-task-info .task-value {
+  color: rgb(var(--text-primary));
+  font-weight: 500;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid rgb(var(--border));
+  justify-content: flex-end;
+}
+.modal-footer .spacer {
+  flex: 1;
+}
+
+.btn-primary {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  background: rgb(var(--accent));
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-primary:hover {
+  background: rgb(var(--accent-hover));
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 6px 14px;
+  font-size: 13px;
+  border: 1px solid rgb(var(--border));
+  border-radius: 6px;
+  background: rgb(var(--bg-card));
+  color: rgb(var(--text-secondary));
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-secondary:hover {
+  background: rgb(var(--bg-surface));
+  color: rgb(var(--text-primary));
+}
+
+.btn-danger {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  background: rgb(var(--red) / 0.1);
+  color: rgb(var(--red));
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-danger:hover {
+  background: rgb(var(--red) / 0.2);
+}
+
+.modal-task-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
 </style>
 </head>
 <body>
 <div id="app">
   <div class="loading"><div class="spinner"></div>Cargando tablero…</div>
 </div>
+<div id="task-modal-root"></div>
 
 <script>
 const API_CONFIG = '/kanban/config';
 const API_BOARD = '/kanban/board';
 const API_MOVE_STAGE = '/kanban/board';
+const API_TASKS = '/kanban/tasks';
 
 let chatwootUrl = '';
 let allColumns = [];
 let activeFilter = '';
+let currentModalCardId = null;
 
 const $ = (s, p) => (p || document).querySelector(s);
 const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
@@ -376,6 +593,216 @@ function openConversation(id) {
     ? `${base}/app/accounts/${accountId}/conversations/${id}`
     : `https://chatwoot.ruki-bot.com/app/accounts/1/conversations/${id}`;
   window.open(url, '_blank');
+}
+
+function openTaskModal(cardData) {
+  currentModalCardId = cardData.id;
+  const task = cardData.task || null;
+  const root = document.getElementById('task-modal-root');
+
+  const taskColors = {
+    tarea_activa: { bg: 'rgb(var(--accent) / 0.1)', text: 'rgb(var(--accent))' },
+    tarea_hoy: { bg: 'rgb(var(--amber) / 0.15)', text: 'rgb(180 120 0)' },
+    tarea_vencida: { bg: 'rgb(var(--red) / 0.1)', text: 'rgb(var(--red))' },
+    tarea_cerrada: { bg: 'rgb(var(--text-muted) / 0.15)', text: 'rgb(var(--text-secondary))' },
+  };
+  const taskLabels = {
+    tarea_activa: 'Activa',
+    tarea_hoy: 'Vence hoy',
+    tarea_vencida: 'Vencida',
+    tarea_cerrada: 'Cerrada',
+  };
+
+  const accountMatch = (chatwootUrl || '').match(/\/accounts\/(\d+)/);
+  const accountId = accountMatch ? accountMatch[1] : '1';
+  const chatwootLink = `${chatwootUrl.replace(/\/+$/, '')}/app/accounts/${accountId}/conversations/${cardData.id}`;
+
+  let taskSection = '';
+  if (task) {
+    const tc = taskColors[task.estado] || taskColors.tarea_activa;
+    const tl = taskLabels[task.estado] || task.estado;
+    const isClosed = task.estado === 'tarea_cerrada';
+    taskSection = `
+      <div class="modal-task-info">
+        <div class="task-row">
+          <span class="task-label">Estado</span>
+          <span class="modal-task-status" style="background:${tc.bg};color:${tc.text}">${tl}</span>
+        </div>
+        <div class="task-row">
+          <span class="task-label">Mensaje</span>
+          <span class="task-value">${escapeHtml(task.mensaje)}</span>
+        </div>
+        <div class="task-row">
+          <span class="task-label">Vencimiento</span>
+          <span class="task-value">${task.fecha_vencimiento || '—'}</span>
+        </div>
+        <div class="task-row">
+          <span class="task-label">Creada por</span>
+          <span class="task-value">${escapeHtml(task.creado_por || '—')}</span>
+        </div>
+      </div>
+      ${isClosed ? '' : `
+        <div class="modal-field">
+          <label for="task-msg">Mensaje</label>
+          <textarea id="task-msg" rows="2">${escapeHtml(task.mensaje)}</textarea>
+        </div>
+        <div class="modal-field">
+          <label for="task-date">Vencimiento</label>
+          <input type="date" id="task-date" value="${task.fecha_vencimiento || ''}">
+        </div>
+      `}
+    `;
+  } else {
+    taskSection = `
+      <div class="modal-field">
+        <label for="task-msg">Mensaje de la tarea</label>
+        <textarea id="task-msg" rows="2" placeholder="Ej: Enviar propuesta comercial"></textarea>
+      </div>
+      <div class="modal-field">
+        <label for="task-date">Fecha de vencimiento</label>
+        <input type="date" id="task-date">
+      </div>
+    `;
+  }
+
+  const taskStatus = task
+    ? `<span class="modal-task-status" style="background:${(taskColors[task.estado] || taskColors.tarea_activa).bg};color:${(taskColors[task.estado] || taskColors.tarea_activa).text}">${taskLabels[task.estado] || task.estado}</span>`
+    : '<span style="font-size:12px;color:rgb(var(--text-muted))">Sin tarea</span>';
+
+  let footerButtons = '';
+  if (task && task.estado !== 'tarea_cerrada') {
+    footerButtons = `
+      <button class="btn-danger" id="modal-close-task">Cerrar tarea</button>
+      <div class="spacer"></div>
+      <button class="btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn-primary" id="modal-save">Guardar</button>
+    `;
+  } else if (task && task.estado === 'tarea_cerrada') {
+    footerButtons = `
+      <div class="spacer"></div>
+      <button class="btn-secondary" id="modal-cancel">Cerrar</button>
+    `;
+  } else {
+    footerButtons = `
+      <div class="spacer"></div>
+      <button class="btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn-primary" id="modal-create">Crear tarea</button>
+    `;
+  }
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>${escapeHtml(cardData.contact_name || 'Conversación')}</h3>
+          <button class="modal-close" id="modal-close-x">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-contact">
+            <div class="card-avatar">${cardData.thumbnail ? `<img src="${cardData.thumbnail}" alt="">` : initials(cardData.contact_name)}</div>
+            <div>
+              <div class="card-name">${escapeHtml(cardData.contact_name)}</div>
+              <a href="${chatwootLink}" target="_blank" rel="noopener">Abrir en Chatwoot</a>
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <span style="font-size:12px;font-weight:500;color:rgb(var(--text-secondary))">Tarea: </span>${taskStatus}
+          </div>
+          ${taskSection}
+        </div>
+        <div class="modal-footer">
+          ${footerButtons}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeTaskModal();
+  });
+  document.getElementById('modal-close-x').addEventListener('click', closeTaskModal);
+  document.getElementById('modal-cancel')?.addEventListener('click', closeTaskModal);
+
+  if (task && task.estado !== 'tarea_cerrada') {
+    document.getElementById('modal-save')?.addEventListener('click', () => saveTask(task.id));
+    document.getElementById('modal-close-task')?.addEventListener('click', () => closeTaskAction(task.id));
+  } else if (!task) {
+    document.getElementById('modal-create')?.addEventListener('click', () => createTask(cardData.id));
+  }
+}
+
+function closeTaskModal() {
+  document.getElementById('task-modal-root').innerHTML = '';
+  currentModalCardId = null;
+}
+
+async function createTask(conversationId) {
+  const msg = document.getElementById('task-msg')?.value?.trim();
+  const date = document.getElementById('task-date')?.value;
+  if (!msg) { showToast('Escribe un mensaje para la tarea', 'error'); return; }
+  if (!date) { showToast('Selecciona una fecha de vencimiento', 'error'); return; }
+
+  const btn = document.getElementById('modal-create');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+
+  try {
+    const res = await fetch(API_TASKS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversation_id: conversationId, mensaje: msg, fecha_vencimiento: date }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    showToast(data.action === 'updated' ? 'Tarea actualizada' : 'Tarea creada');
+    closeTaskModal();
+    refreshBoard();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Crear tarea'; }
+  }
+}
+
+async function saveTask(taskId) {
+  const msg = document.getElementById('task-msg')?.value?.trim();
+  const date = document.getElementById('task-date')?.value;
+  if (!msg) { showToast('Escribe un mensaje para la tarea', 'error'); return; }
+  if (!date) { showToast('Selecciona una fecha de vencimiento', 'error'); return; }
+
+  const btn = document.getElementById('modal-save');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+  try {
+    const res = await fetch(`${API_TASKS}/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mensaje: msg, fecha_vencimiento: date }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    showToast('Tarea actualizada');
+    closeTaskModal();
+    refreshBoard();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+  }
+}
+
+async function closeTaskAction(taskId) {
+  const btn = document.getElementById('modal-close-task');
+  if (btn) { btn.disabled = true; btn.textContent = 'Cerrando…'; }
+
+  try {
+    const res = await fetch(`${API_TASKS}/${taskId}/close`, { method: 'PATCH' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    showToast('Tarea cerrada');
+    closeTaskModal();
+    refreshBoard();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Cerrar tarea'; }
+  }
 }
 
 function renderBoard(data) {
@@ -495,7 +922,14 @@ function createCard(card) {
   });
   el.addEventListener('dragend', () => el.classList.remove('dragging'));
 
-  el.addEventListener('click', () => openConversation(card.id));
+  el.addEventListener('click', () => {
+    openTaskModal({
+      id: card.id,
+      contact_name: card.contact_name,
+      thumbnail: card.thumbnail,
+      task: card.task || null,
+    });
+  });
 
   return el;
 }

@@ -1,9 +1,10 @@
-# Sesión 005 — Frontend Chatwoot-consistente y Chatwoot client robusto
+# Sesión 005 — Frontend Chatwoot-consistente, client robusto y sistema de tareas UI
 
 - **Fecha:** 2026-07-16
 - **Propósito:** Alinear el frontend con el theme de Chatwoot (light/dark via
   `prefers-color-scheme`), pulir la barra de controles, ocultar scrollbars,
-  y robustecer el chatwoot client con connection pooling y retry.
+  robustecer el chatwoot client con connection pooling y retry, e implementar
+  la UI del sistema de tareas (modal crear/editar/cerrar).
 
 ## Contexto
 
@@ -12,7 +13,9 @@ integraban con el theme de Chatwoot. El frontend usaba colores hardcoded
 (`#fff`, `#f7f7f7`, `#ececec`) sin soporte dark mode nativo, el header
 tenía un label "Kanban" redundante, y los selects/botones tenían alturas
 desiguales. Además, el chatwoot_client creaba un `httpx.AsyncClient` nuevo
-por cada llamada (sin pooling) y no tenía reintentos.
+por cada llamada (sin pooling) y no tenía reintentos. El sistema de tareas
+tenía endpoints en el backend pero ninguna UI para crear, editar o cerrar
+tareas desde el Kanban.
 
 ## Cambios realizados
 
@@ -90,10 +93,39 @@ Contenido sigue siendo desplazable sin mostrar la barra nativa.
 Mismo sistema de tokens y dark mode que el Kanban. Eliminado Tailwind CDN
 (no se usaba). Badges, tablas, stat-cards — todo con tokens.
 
+### 7. Modal de tareas (kanban.html)
+
+Click en una card del Kanban ahora abre un modal con gestión de tareas en
+vez de abrir Chatwoot directamente. El modal incluye:
+
+**Sin tarea existente:**
+- Formulario con mensaje (textarea) y fecha de vencimiento (date input)
+- Botón "Crear tarea" que llama `POST /kanban/tasks`
+- Link "Abrir en Chatwoot" para acceder a la conversación
+
+**Con tarea activa:**
+- Info de la tarea: estado, mensaje, vencimiento, creada por
+- Formulario pre-llenado para editar mensaje y fecha
+- Botones "Guardar" (`PATCH /kanban/tasks/{id}`) y "Cerrar tarea"
+  (`PATCH /kanban/tasks/{id}/close`)
+
+**Con tarea cerrada:**
+- Solo muestra info de la tarea (estado Cerrada)
+- Botón "Cerrar" para dismiss
+
+**UX:**
+- Overlay con click fuera para cerrar
+- Botón X en la esquina
+- Toast de confirmación después de cada acción
+- Board se refresca automáticamente después de crear/editar/cerrar
+- Botones se deshabilitan durante la请求 para evitar doble-click
+- Tokens CSS consistentes (modal, botones, badges de estado)
+
 ## Archivos tocados
 
 **Modificados:**
-- `app/templates/kanban.html` — CSS tokens, header, scrollbars, dark mode
+- `app/templates/kanban.html` — CSS tokens, header, scrollbars, dark mode,
+  modal de tareas (CSS + JS completo)
 - `app/templates/dashboard.html` — CSS tokens, dark mode, eliminado Tailwind
 - `app/chatwoot_client.py` — connection pooling, retry con backoff
 - `app/main.py` — lifespan con init/close del chatwoot client
@@ -110,9 +142,10 @@ lifespan para mockear init/close del chatwoot client).
 |---|------|-------------|
 | 1 | — | feat(frontend): CSS tokens light/dark, header, scrollbars |
 | 2 | — | feat(client): connection pooling y retry con backoff |
+| 3 | — | feat(frontend): modal de tareas crear/editar/cerrar |
 
 ## Próximo paso
 
-- Evaluar: ¿crear tarea desde el Kanban con un botón por card (modal)?
 - Conectar Cloudflare Access para atribución real de agentes
 - Configurar cron job en el NAS (23:30 diarias, `POST /kanban/cron/tick`)
+- Evaluar: sync entre agentes vía webhook `conversation_updated`
