@@ -103,5 +103,27 @@ class ChatwootClient:
         resp = await self._request("POST", url, json={"custom_attributes": attributes})
         return resp.json()
 
+    async def get_conversation(self, conversation_id: int) -> dict:
+        url = f"{self._account_path}/conversations/{conversation_id}"
+        resp = await self._request("GET", url)
+        return resp.json()
+
+    async def safe_update_custom_attributes(
+        self, conversation_id: int, attributes: dict
+    ) -> dict:
+        try:
+            conv = await self.get_conversation(conversation_id)
+            existing = conv.get("custom_attributes") or {}
+        except Exception:
+            logger.warning(
+                "Could not read existing attributes for conv %s, "
+                "sending partial update",
+                conversation_id,
+            )
+            return await self.update_custom_attributes(conversation_id, attributes)
+
+        merged = {**existing, **attributes}
+        return await self.update_custom_attributes(conversation_id, merged)
+
 
 chatwoot_client = ChatwootClient()

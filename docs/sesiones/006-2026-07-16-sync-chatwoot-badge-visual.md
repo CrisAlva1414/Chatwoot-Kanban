@@ -125,3 +125,51 @@ assertions).
   3. La fecha "hace 20630d" ya no aparece
   4. Al crear/editar tarea, Chatwoot muestra los atributos
   5. Al cerrar tarea, Chatwoot limpia los atributos
+
+---
+
+## Hotfix: Read-Merge-Write para custom attributes (crítico)
+
+### Problema
+
+**Los leads desaparecían del Kanban después de crear una tarea.**
+
+Chatwoot en algunas versiones hace **REPLACE** (no MERGE) al recibir
+`POST /conversations/{id}/custom_attributes`. Al enviar solo los atributos
+de tarea (`kanban_view_mensaje`, `kanban_view_fecha_termino`), se borraba
+`pipeline_01_etapas` → el lead no aparecía en ninguna columna.
+
+Había 5 puntos vulnerables:
+1. `create_task` → borraba `pipeline_01_etapas`
+2. `update_task` → borraba `pipeline_01_etapas`
+3. `close_task` → borraba `pipeline_01_etapas`
+4. `move_stage` → borraba `kanban_view_*`
+5. `cron_tick` → borraba todo
+
+### Fix: safe_update_custom_attributes
+
+Nuevo método en `chatwoot_client.py` que implementa read-merge-write:
+
+```python
+async def safe_update_custom_attributes(
+    self, conversation_id: int, attributes: dict
+) -> dict:
+    # 1. GET atributos actuales
+    conv = await self.get_conversation(conversation_id)
+    existing = conv.get("custom_attributes") or {}
+    # 2. MERGE: existentes + nuevos
+    merged = {**existing, **attributes}
+    # 3. POST el resultado completo
+    return await self.update_custom_attributes(conversation_id, merged)
+```
+
+**Fallback:** Si falla la lectura, envía el update parcial (mejor que nada).
+
+### Archivos modificados
+
+- `app/chatwoot_client.py` — `get_conversation()` + `safe_update_custom_attributes()`
+- `app/routers/kanban.py` — 4 call sites actualizados
+- `app/routers/api.py` — 1 call site actualizado
+- `app/database.py` — `cron_tick()` actualizado
+- `app/templates/kanban.html` — reset del filtro de estado después de crear/editar/cerrar tarea
+- `tests/test_kanban.py` — mocks actualizados

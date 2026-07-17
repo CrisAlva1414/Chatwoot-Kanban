@@ -792,6 +792,7 @@ async function createTask(conversationId) {
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     showToast(data.action === 'updated' ? 'Tarea actualizada' : 'Tarea creada');
     closeTaskModal();
+    resetStateFilter();
     refreshBoard();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
@@ -818,6 +819,7 @@ async function saveTask(taskId) {
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     showToast('Tarea actualizada');
     closeTaskModal();
+    resetStateFilter();
     refreshBoard();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
@@ -835,11 +837,17 @@ async function closeTaskAction(taskId) {
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     showToast('Tarea cerrada');
     closeTaskModal();
+    resetStateFilter();
     refreshBoard();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Cerrar tarea'; }
   }
+}
+
+function resetStateFilter() {
+  const sel = document.getElementById('state-filter');
+  if (sel) sel.value = '';
 }
 
 function renderBoard(data) {

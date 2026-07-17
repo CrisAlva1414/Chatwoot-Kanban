@@ -281,7 +281,7 @@ async def cron_tick() -> dict:
             from app.chatwoot_client import chatwoot_client
 
             fecha_iso = task["fecha_vencimiento"].isoformat() + "T04:00:00.000Z"
-            await chatwoot_client.update_custom_attributes(
+            await chatwoot_client.safe_update_custom_attributes(
                 task["conversation_id"],
                 {"kanban_view_fecha_termino": fecha_iso},
             )

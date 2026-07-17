@@ -112,7 +112,9 @@ def test_move_stage_ok(client, mock_chatwoot_ok):
             "email": "bot@i-labs.cl",
             "nombre": "Bot",
         }
-        mock_chatwoot_ok.update_custom_attributes = AsyncMock(return_value={"id": 101})
+        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
+            return_value={"id": 101}
+        )
         response = client.patch(
             "/kanban/board/101/stage",
             json={"stage": "Potencial"},
@@ -146,7 +148,7 @@ def test_move_stage_chatwoot_error(client, mock_chatwoot_ok):
             "email": "bot@i-labs.cl",
             "nombre": "Bot",
         }
-        mock_chatwoot_ok.update_custom_attributes = AsyncMock(
+        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
             side_effect=Exception("Connection refused")
         )
         response = client.patch(
@@ -179,7 +181,9 @@ def test_create_task(client, mock_chatwoot_ok):
         }
         mock_active.return_value = None
         mock_upsert.return_value = {"id": 10, "action": "created"}
-        mock_chatwoot_ok.update_custom_attributes = AsyncMock(return_value={"id": 101})
+        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
+            return_value={"id": 101}
+        )
         response = client.post(
             "/kanban/tasks",
             json={
@@ -223,7 +227,9 @@ def test_create_task_overwrite(client, mock_chatwoot_ok):
             "creado_por_nombre": "María",
         }
         mock_upsert.return_value = {"id": 5, "action": "updated"}
-        mock_chatwoot_ok.update_custom_attributes = AsyncMock(return_value={"id": 101})
+        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
+            return_value={"id": 101}
+        )
         response = client.post(
             "/kanban/tasks",
             json={
@@ -254,7 +260,9 @@ def test_close_task(client, mock_chatwoot_ok):
                 "estado": "tarea_activa",
             },
         }
-        mock_chatwoot_ok.update_custom_attributes = AsyncMock(return_value={"id": 101})
+        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
+            return_value={"id": 101}
+        )
         response = client.patch("/kanban/tasks/10/close")
         assert response.status_code == 200
         assert response.json()["ok"] is True

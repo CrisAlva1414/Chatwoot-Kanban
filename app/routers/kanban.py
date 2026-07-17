@@ -97,7 +97,7 @@ async def move_stage(conversation_id: int, body: MoveStageRequest, request: Requ
             previous_state={"stage_from": "unknown"},
             new_state={"stage_to": body.stage},
         )
-        await chatwoot_client.update_custom_attributes(
+        await chatwoot_client.safe_update_custom_attributes(
             conversation_id, {PIPELINE_ATTR_KEY: body.stage}
         )
         await write_audit_log(
@@ -158,7 +158,7 @@ async def create_task(body: CreateTaskRequest, request: Request):
             TASK_MSG_ATTR_KEY: body.mensaje,
             TASK_DATE_ATTR_KEY: fecha_iso,
         }
-        await chatwoot_client.update_custom_attributes(body.conversation_id, attrs)
+        await chatwoot_client.safe_update_custom_attributes(body.conversation_id, attrs)
     except Exception as exc:
         logger.error(
             "Chatwoot sync failed for task on conv %s: %s",
@@ -212,7 +212,7 @@ async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Req
                 TASK_MSG_ATTR_KEY: body.mensaje,
                 TASK_DATE_ATTR_KEY: fecha_iso,
             }
-            await chatwoot_client.update_custom_attributes(conv_id, attrs)
+            await chatwoot_client.safe_update_custom_attributes(conv_id, attrs)
     except Exception as exc:
         logger.error("Chatwoot sync failed for task %s: %s", task_id, exc)
         chatwoot_ok = False
@@ -252,7 +252,7 @@ async def close_task_endpoint(task_id: int, request: Request):
     try:
         conv_id = previous.get("conversation_id")
         if conv_id:
-            await chatwoot_client.update_custom_attributes(
+            await chatwoot_client.safe_update_custom_attributes(
                 conv_id, {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""}
             )
     except Exception as exc:

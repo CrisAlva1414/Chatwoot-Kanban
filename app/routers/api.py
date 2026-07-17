@@ -11,7 +11,7 @@ async def update_custom_attributes(
     conversation_id: int, body: UpdateCustomAttributesRequest
 ):
     try:
-        return await chatwoot_client.update_custom_attributes(
+        return await chatwoot_client.safe_update_custom_attributes(
             conversation_id, body.custom_attributes
         )
     except Exception as exc:
