@@ -1,0 +1,45 @@
+services:
+  ruki-kanban-staging-postgres:
+    image: postgres:16-alpine
+    container_name: ruki-kanban-staging-postgres
+    restart: unless-stopped
+    volumes:
+      - kanban_staging_pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kanban_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-kanban}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kanban} -d ${POSTGRES_DB:-kanban_staging}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ruki_cloudflared
+
+  ruki-kanban-staging-kanban:
+    image: ghcr.io/i-labs-chile/ruki-plugins-kanban:develop
+    container_name: ruki-kanban-staging-kanban
+    restart: unless-stopped
+    depends_on:
+      ruki-kanban-staging-postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - ruki_cloudflared
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  kanban_staging_pgdata:
+
+networks:
+  ruki_cloudflared:
+    name: ruki_cloudflared
+    external: true

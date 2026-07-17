@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format check
+        run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: kanban_test
+          POSTGRES_USER: kanban
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kanban"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://kanban:test@localhost:5432/kanban_test
+      CHATWOOT_BASE_URL: https://fake.chatwoot.com
+      CHATWOOT_ACCOUNT_ID: "1"
+      CHATWOOT_BOT_TOKEN: fake
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
