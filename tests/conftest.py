@@ -44,7 +44,9 @@ MOCK_FILTER_RESPONSE = {
                     {"content": "Hola, necesito ayuda", "text": "Hola, necesito ayuda"}
                 ],
                 "updated_at": "2026-07-13T10:00:00Z",
-                "custom_attributes": {"tarea_estado": "tarea_activa"},
+                "custom_attributes": {
+                    "kanban_view_fecha_termino": "2026-07-20T04:00:00.000Z"
+                },
             },
             {
                 "id": 102,
@@ -162,7 +164,9 @@ def mock_chatwoot_flat_response():
                         },
                         "messages": [],
                         "updated_at": "2026-07-10T08:00:00Z",
-                        "custom_attributes": {"tarea_estado": "tarea_hoy"},
+                        "custom_attributes": {
+                            "kanban_view_fecha_termino": "2026-07-25T04:00:00.000Z"
+                        },
                     }
                 ]
             }

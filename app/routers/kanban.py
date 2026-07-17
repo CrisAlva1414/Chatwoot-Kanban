@@ -28,8 +28,8 @@ TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 
 PIPELINE_ATTR_KEY = "pipeline_01_etapas"
 
-TASK_ATTR_KEY = "tarea_estado"
-TASK_DATE_ATTR_KEY = "tarea_vencimiento"
+TASK_MSG_ATTR_KEY = "kanban_view_mensaje"
+TASK_DATE_ATTR_KEY = "kanban_view_fecha_termino"
 
 
 class MoveStageRequest(BaseModel):
@@ -153,9 +153,10 @@ async def create_task(body: CreateTaskRequest, request: Request):
 
     chatwoot_ok = True
     try:
+        fecha_iso = body.fecha_vencimiento.isoformat() + "T04:00:00.000Z"
         attrs = {
-            TASK_ATTR_KEY: "tarea_activa",
-            TASK_DATE_ATTR_KEY: body.fecha_vencimiento.isoformat(),
+            TASK_MSG_ATTR_KEY: body.mensaje,
+            TASK_DATE_ATTR_KEY: fecha_iso,
         }
         await chatwoot_client.update_custom_attributes(body.conversation_id, attrs)
     except Exception as exc:
@@ -206,8 +207,10 @@ async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Req
     try:
         conv_id = previous.get("conversation_id")
         if conv_id:
+            fecha_iso = body.fecha_vencimiento.isoformat() + "T04:00:00.000Z"
             attrs = {
-                TASK_DATE_ATTR_KEY: body.fecha_vencimiento.isoformat(),
+                TASK_MSG_ATTR_KEY: body.mensaje,
+                TASK_DATE_ATTR_KEY: fecha_iso,
             }
             await chatwoot_client.update_custom_attributes(conv_id, attrs)
     except Exception as exc:
@@ -250,7 +253,7 @@ async def close_task_endpoint(task_id: int, request: Request):
         conv_id = previous.get("conversation_id")
         if conv_id:
             await chatwoot_client.update_custom_attributes(
-                conv_id, {TASK_ATTR_KEY: "tarea_cerrada"}
+                conv_id, {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""}
             )
     except Exception as exc:
         logger.error("Chatwoot sync failed closing task %s: %s", task_id, exc)

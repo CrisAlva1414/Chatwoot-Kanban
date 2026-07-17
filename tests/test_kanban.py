@@ -49,7 +49,8 @@ def test_kanban_board_normalizes_conversations(client, mock_chatwoot_ok):
     assert card["id"] == 101
     assert card["contact_name"] == "Juan Pérez"
     assert card["last_message"] == "Hola, necesito ayuda"
-    assert card["custom_attributes"] == {"tarea_estado": "tarea_activa"}
+    expected_attrs = {"kanban_view_fecha_termino": "2026-07-20T04:00:00.000Z"}
+    assert card["custom_attributes"] == expected_attrs
 
 
 def test_kanban_board_handles_flat_response(client, mock_chatwoot_flat_response):

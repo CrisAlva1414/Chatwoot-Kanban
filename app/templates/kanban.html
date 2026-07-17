@@ -233,20 +233,50 @@ body {
 }
 
 .card-task {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   margin-top: 6px;
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 3px 9px;
+  border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
+  background: rgb(var(--amber) / 0.12);
+  color: rgb(180 120 0);
+  border: 1px solid rgb(var(--amber) / 0.25);
+  max-width: 100%;
 }
-.card-task-label {
-  font-weight: 600;
+.card-task.overdue {
+  background: rgb(var(--red) / 0.1);
+  color: rgb(var(--red));
+  border-color: rgb(var(--red) / 0.25);
+}
+.card-task-icon {
+  flex-shrink: 0;
+  font-size: 12px;
 }
 .card-task-date {
-  opacity: 0.8;
+  white-space: nowrap;
+}
+.card-task-msg {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: rgb(var(--bg-card));
+  border: 1px solid rgb(var(--border));
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: rgb(var(--text-primary));
+  line-height: 1.4;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+  word-break: break-word;
+}
+.card:hover .card-task-msg {
+  display: block;
 }
 
 .empty-state {
@@ -526,9 +556,16 @@ const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
+  let d;
+  if (typeof dateStr === 'number' || /^\d{10}(\.\d+)?$/.test(String(dateStr))) {
+    d = new Date(Number(dateStr) * 1000);
+  } else {
+    d = new Date(dateStr);
+  }
+  if (isNaN(d.getTime())) return '';
   const now = new Date();
   const diff = now - d;
+  if (diff < 0) return 'ahora';
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'ahora';
   if (mins < 60) return `hace ${mins}m`;
@@ -545,22 +582,19 @@ function initials(name) {
 
 function renderTaskBadge(task) {
   if (!task) return '';
-  const colors = {
-    tarea_activa: { bg: 'rgb(var(--accent) / 0.1)', text: 'rgb(var(--accent))' },
-    tarea_hoy: { bg: 'rgb(var(--amber) / 0.15)', text: 'rgb(180 120 0)' },
-    tarea_vencida: { bg: 'rgb(var(--red) / 0.1)', text: 'rgb(var(--red))' },
-  };
-  const labels = {
-    tarea_activa: 'Activa',
-    tarea_hoy: 'Hoy',
-    tarea_vencida: 'Vencida',
-  };
-  const c = colors[task.estado] || colors.tarea_activa;
-  const label = labels[task.estado] || task.estado;
+  const now = new Date();
+  const vencimiento = task.fecha_vencimiento ? new Date(task.fecha_vencimiento) : null;
+  const isOverdue = vencimiento && vencimiento < now && task.estado !== 'tarea_cerrada';
+  const cls = isOverdue ? 'card-task overdue' : 'card-task';
+  const dateStr = task.fecha_vencimiento
+    ? new Date(task.fecha_vencimiento).toLocaleDateString('es-CL')
+    : '';
+  const msg = task.mensaje ? escapeHtml(task.mensaje) : '';
   return `
-    <div class="card-task" style="background:${c.bg};color:${c.text};border:1px solid ${c.text};">
-      <span class="card-task-label">${label}</span>
-      ${task.fecha_vencimiento ? `<span class="card-task-date">${task.fecha_vencimiento}</span>` : ''}
+    <div class="${cls}" title="${msg}">
+      <span class="card-task-icon">&#128197;</span>
+      ${dateStr ? `<span class="card-task-date">${dateStr}</span>` : ''}
+      ${msg ? `<div class="card-task-msg">${msg}</div>` : ''}
     </div>
   `;
 }
@@ -622,6 +656,9 @@ function openTaskModal(cardData) {
     const tc = taskColors[task.estado] || taskColors.tarea_activa;
     const tl = taskLabels[task.estado] || task.estado;
     const isClosed = task.estado === 'tarea_cerrada';
+    const fechaDisplay = task.fecha_vencimiento
+      ? new Date(task.fecha_vencimiento).toLocaleDateString('es-CL')
+      : '—';
     taskSection = `
       <div class="modal-task-info">
         <div class="task-row">
@@ -634,7 +671,7 @@ function openTaskModal(cardData) {
         </div>
         <div class="task-row">
           <span class="task-label">Vencimiento</span>
-          <span class="task-value">${task.fecha_vencimiento || '—'}</span>
+          <span class="task-value">${fechaDisplay}</span>
         </div>
         <div class="task-row">
           <span class="task-label">Creada por</span>
@@ -823,9 +860,10 @@ function renderBoard(data) {
       <select id="state-filter">
         <option value="">Todas las tareas</option>
         <option value="tarea_activa">Activa</option>
-        <option value="tarea_hoy">Hoy</option>
+        <option value="tarea_hoy">Vence hoy</option>
         <option value="tarea_vencida">Vencida</option>
         <option value="tarea_cerrada">Cerrada</option>
+        <option value="sin_tarea">Sin tarea</option>
       </select>
       <button class="btn" id="refresh-btn">Actualizar</button>
       <a href="/kanban/dashboard" class="btn">Dashboard</a>
@@ -871,7 +909,10 @@ function renderColumns(columns, board) {
   columns.forEach(col => {
     let cards = col.conversations || [];
     if (activeFilter) {
-      cards = cards.filter(c => (c.custom_attributes.tarea_estado || '') === activeFilter);
+      cards = cards.filter(c => {
+        if (!c.task) return activeFilter === 'sin_tarea';
+        return c.task.estado === activeFilter;
+      });
     }
 
     const colEl = document.createElement('div');
