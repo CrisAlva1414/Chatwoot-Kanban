@@ -78,7 +78,10 @@ def _patch_lifespan():
     with (
         patch("app.main.init_pool", new_callable=AsyncMock),
         patch("app.main.close_pool", new_callable=AsyncMock),
+        patch("app.main.chatwoot_client") as mock_client,
     ):
+        mock_client.init = AsyncMock()
+        mock_client.close = AsyncMock()
         yield
 
 

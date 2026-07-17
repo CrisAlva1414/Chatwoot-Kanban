@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.chatwoot_client import chatwoot_client
 from app.database import close_pool, init_pool
 from app.routers import api, conversations, kanban, webhooks
 
@@ -9,7 +10,9 @@ from app.routers import api, conversations, kanban, webhooks
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     await init_pool()
+    await chatwoot_client.init()
     yield
+    await chatwoot_client.close()
     await close_pool()
 
 

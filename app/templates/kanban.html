@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="light">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,94 +12,107 @@ tailwind.config = {
 </script>
 <style>
 :root {
-  --slate-1: 252 252 253; --slate-2: 249 249 251; --slate-3: 235 236 240;
-  --slate-4: 224 226 231; --slate-5: 214 217 224; --slate-6: 204 207 216;
-  --slate-7: 190 194 204; --slate-8: 167 172 185; --slate-9: 138 143 155;
-  --slate-10: 126 131 143; --slate-11: 96 100 108; --slate-12: 28 32 36;
-  --blue-9: 39 129 246;
-  --blue-10: 16 115 233;
-  --red-9: 229 70 102;
-  --amber-9: 255 197 61;
-  --green-9: 18 165 148;
+  --bg-page: 254 254 254;
+  --text-primary: 28 32 36;
+  --text-secondary: 96 100 108;
+  --text-muted: 138 143 155;
+  --border: 240 240 243;
+  --bg-card: 254 254 254;
+  --bg-surface: 245 245 247;
+  --accent: 39 129 246;
+  --accent-hover: 16 115 233;
+  --accent-focus: 39 129 246 / 0.15;
+  --red: 229 70 102;
+  --amber: 255 197 61;
+  --green: 18 165 148;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-page: 20 21 23;
+    --text-primary: 237 238 240;
+    --text-secondary: 96 100 108;
+    --text-muted: 110 115 128;
+    --border: 40 42 46;
+    --bg-card: 28 29 32;
+    --bg-surface: 34 35 38;
+    --accent: 39 129 246;
+    --accent-hover: 16 115 233;
+    --accent-focus: 39 129 246 / 0.2;
+    --red: 229 70 102;
+    --amber: 255 197 61;
+    --green: 18 165 148;
+  }
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
-  font-family: Inter, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Tahoma, Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  color: rgb(var(--slate-12));
-  background: #f7f7f7;
+  color: rgb(var(--text-primary));
+  background: rgb(var(--bg-page));
   -webkit-font-smoothing: antialiased;
 }
 
+.board, .column-body {
+  scrollbar-width: none;
+}
+.board::-webkit-scrollbar,
+.column-body::-webkit-scrollbar {
+  display: none;
+}
+
 .kanban-header {
-  background: #fff;
-  border-bottom: 1px solid #ececec;
-  padding: 12px 16px;
+  background: rgb(var(--bg-page));
+  border-bottom: 1px solid rgb(var(--border));
+  padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.kanban-header h1 {
-  font-size: 15px;
-  font-weight: 600;
-  color: rgb(var(--slate-12));
-  white-space: nowrap;
-}
-
 .kanban-header select {
   font-size: 13px;
-  padding: 6px 10px;
-  border: 1px solid #e2e3e7;
+  padding: 5px 10px;
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
-  background: #fff;
-  color: rgb(var(--slate-12));
+  background: rgb(var(--bg-card));
+  color: rgb(var(--text-primary));
   outline: none;
   cursor: pointer;
+  line-height: 1.4;
 }
 .kanban-header select:focus {
-  border-color: rgb(var(--blue-9));
-  box-shadow: 0 0 0 2px rgb(var(--blue-9) / 0.15);
+  border-color: rgb(var(--accent));
+  box-shadow: 0 0 0 2px rgb(var(--accent-focus));
 }
 
-.kanban-header .refresh-btn {
-  margin-left: auto;
-  padding: 6px 12px;
+.kanban-header .btn {
+  padding: 5px 12px;
   font-size: 13px;
-  border: 1px solid #e2e3e7;
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
-  background: #fff;
-  color: rgb(var(--slate-11));
+  background: rgb(var(--bg-card));
+  color: rgb(var(--text-secondary));
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.4;
 }
-.kanban-header .refresh-btn:hover {
-  background: rgb(var(--slate-3));
-  color: rgb(var(--slate-12));
+.kanban-header .btn:hover {
+  background: rgb(var(--bg-surface));
+  color: rgb(var(--text-primary));
 }
-.kanban-header .refresh-btn:active {
-  background: rgb(var(--slate-4));
-}
-
-.kanban-header .filter-state {
-  font-size: 13px;
-  padding: 6px 10px;
-  border: 1px solid #e2e3e7;
-  border-radius: 6px;
-  background: #fff;
-  color: rgb(var(--slate-12));
-  outline: none;
-  cursor: pointer;
-}
-.kanban-header .filter-state:focus {
-  border-color: rgb(var(--blue-9));
-  box-shadow: 0 0 0 2px rgb(var(--blue-9) / 0.15);
+.kanban-header .btn:active {
+  background: rgb(var(--border));
 }
 
 .board {
@@ -107,18 +120,18 @@ body {
   gap: 12px;
   padding: 16px;
   overflow-x: auto;
-  min-height: calc(100vh - 57px);
+  min-height: calc(100vh - 49px);
   align-items: flex-start;
 }
 
 .column {
   flex: 0 0 280px;
   max-width: 280px;
-  background: #f1f2f4;
+  background: rgb(var(--bg-surface));
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 90px);
+  max-height: calc(100vh - 82px);
 }
 
 .column-header {
@@ -127,18 +140,18 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: rgb(var(--slate-11));
+  color: rgb(var(--text-secondary));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 1px solid rgb(var(--border));
 }
 
 .column-header .count {
   font-weight: 400;
   font-size: 11px;
-  color: rgb(var(--slate-9));
-  background: rgb(var(--slate-4));
+  color: rgb(var(--text-muted));
+  background: rgb(var(--border));
   padding: 1px 7px;
   border-radius: 10px;
 }
@@ -151,23 +164,22 @@ body {
 }
 
 .column-body.drag-over {
-  background: rgb(var(--blue-9) / 0.06);
+  background: rgb(var(--accent) / 0.06);
   border-radius: 6px;
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #ececec;
+  background: rgb(var(--bg-card));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 8px;
   cursor: grab;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: border-color 0.15s;
   position: relative;
 }
 .card:hover {
-  border-color: #c4c7ce;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
+  border-color: rgb(var(--text-muted));
 }
 .card.dragging {
   opacity: 0.5;
@@ -183,7 +195,7 @@ body {
 }
 .card-avatar {
   width: 24px; height: 24px; border-radius: 50%;
-  background: rgb(var(--slate-4));
+  background: rgb(var(--border));
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -191,7 +203,7 @@ body {
   justify-content: center;
   font-size: 11px;
   font-weight: 500;
-  color: rgb(var(--slate-9));
+  color: rgb(var(--text-muted));
 }
 .card-avatar img {
   width: 100%; height: 100%; object-fit: cover;
@@ -199,14 +211,14 @@ body {
 .card-name {
   font-size: 13px;
   font-weight: 500;
-  color: rgb(var(--slate-12));
+  color: rgb(var(--text-primary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .card-message {
   font-size: 12px;
-  color: rgb(var(--slate-11));
+  color: rgb(var(--text-secondary));
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -216,7 +228,7 @@ body {
 }
 .card-time {
   font-size: 11px;
-  color: rgb(var(--slate-9));
+  color: rgb(var(--text-muted));
   margin-top: 4px;
 }
 
@@ -241,21 +253,21 @@ body {
   text-align: center;
   padding: 24px 12px;
   font-size: 13px;
-  color: rgb(var(--slate-9));
+  color: rgb(var(--text-muted));
 }
 
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 57px);
-  color: rgb(var(--slate-9));
+  min-height: calc(100vh - 49px);
+  color: rgb(var(--text-muted));
   font-size: 14px;
 }
 .spinner {
   width: 20px; height: 20px;
-  border: 2px solid rgb(var(--slate-5));
-  border-top-color: rgb(var(--blue-9));
+  border: 2px solid rgb(var(--border));
+  border-top-color: rgb(var(--accent));
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   margin-right: 8px;
@@ -268,23 +280,14 @@ body {
 }
 
 .error-banner {
-  background: rgb(var(--red-9) / 0.1);
-  color: rgb(var(--red-9));
-  border: 1px solid rgb(var(--red-9) / 0.2);
+  background: rgb(var(--red) / 0.1);
+  color: rgb(var(--red));
+  border: 1px solid rgb(var(--red) / 0.2);
   border-radius: 6px;
   padding: 10px 14px;
   margin: 16px;
   font-size: 13px;
 }
-
-.dark .column { background: #1c1e21; }
-.dark .card { background: #282a2d; border-color: #383a3d; }
-.dark .card:hover { border-color: #5a5c60; }
-.dark .kanban-header { background: #1c1e21; border-color: #2c2e31; }
-.dark .kanban-header select,
-.dark .kanban-header .filter-state,
-.dark .kanban-header .refresh-btn { background: #282a2d; border-color: #383a3d; color: rgb(var(--slate-11)); }
-.dark .column-header { color: rgb(var(--slate-11)); }
 </style>
 </head>
 <body>
@@ -326,9 +329,9 @@ function initials(name) {
 function renderTaskBadge(task) {
   if (!task) return '';
   const colors = {
-    tarea_activa: { bg: 'rgb(var(--blue-9) / 0.1)', text: 'rgb(var(--blue-9))' },
-    tarea_hoy: { bg: 'rgb(var(--amber-9) / 0.15)', text: 'rgb(180 120 0)' },
-    tarea_vencida: { bg: 'rgb(var(--red-9) / 0.1)', text: 'rgb(var(--red-9))' },
+    tarea_activa: { bg: 'rgb(var(--accent) / 0.1)', text: 'rgb(var(--accent))' },
+    tarea_hoy: { bg: 'rgb(var(--amber) / 0.15)', text: 'rgb(180 120 0)' },
+    tarea_vencida: { bg: 'rgb(var(--red) / 0.1)', text: 'rgb(var(--red))' },
   };
   const labels = {
     tarea_activa: 'Activa',
@@ -386,20 +389,19 @@ function renderBoard(data) {
 
   app.innerHTML = `
     <div class="kanban-header">
-      <h1>Kanban</h1>
       <select id="pipeline-select">
-        ${columns.map((c, i) => `<option value="${c.stage}">${c.stage}</option>`).join('')}
         <option value="">Todas las etapas</option>
+        ${columns.map(c => `<option value="${c.stage}">${c.stage}</option>`).join('')}
       </select>
-      <select class="filter-state" id="state-filter">
+      <select id="state-filter">
         <option value="">Todas las tareas</option>
         <option value="tarea_activa">Activa</option>
         <option value="tarea_hoy">Hoy</option>
         <option value="tarea_vencida">Vencida</option>
         <option value="tarea_cerrada">Cerrada</option>
       </select>
-      <button class="refresh-btn" id="refresh-btn">Actualizar</button>
-      <a href="/kanban/dashboard" class="refresh-btn" id="dashboard-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">Dashboard</a>
+      <button class="btn" id="refresh-btn">Actualizar</button>
+      <a href="/kanban/dashboard" class="btn">Dashboard</a>
     </div>
     <div class="board" id="board"></div>
   `;
@@ -571,14 +573,11 @@ function showToast(message, type = 'info') {
     position: fixed; bottom: 16px; right: 16px; z-index: 100;
     padding: 10px 16px; border-radius: 6px; font-size: 13px;
     color: #fff; max-width: 340px; word-break: break-word;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     animation: toastIn 0.2s ease-out;
   `;
-  if (type === 'error') {
-    toast.style.background = 'rgb(var(--red-9))';
-  } else {
-    toast.style.background = 'rgb(var(--green-9))';
-  }
+  toast.style.background = type === 'error'
+    ? 'rgb(var(--red))'
+    : 'rgb(var(--green))';
   toast.textContent = message;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);

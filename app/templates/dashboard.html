@@ -3,21 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.tailwindcss.com"></script>
 <style>
+:root {
+  --bg-page: 254 254 254;
+  --text-primary: 28 32 36;
+  --text-secondary: 96 100 108;
+  --text-muted: 138 143 155;
+  --border: 240 240 243;
+  --bg-card: 254 254 254;
+  --bg-surface: 245 245 247;
+  --accent: 39 129 246;
+  --accent-hover: 16 115 233;
+  --red: 229 70 102;
+  --amber: 255 197 61;
+  --green: 18 165 148;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-page: 20 21 23;
+    --text-primary: 237 238 240;
+    --text-secondary: 96 100 108;
+    --text-muted: 110 115 128;
+    --border: 40 42 46;
+    --bg-card: 28 29 32;
+    --bg-surface: 34 35 38;
+    --accent: 39 129 246;
+    --accent-hover: 16 115 233;
+    --red: 229 70 102;
+    --amber: 255 197 61;
+    --green: 18 165 148;
+  }
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
-  font-family: Inter, -apple-system, system-ui, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
-  color: #1c1e21;
-  background: #f7f7f7;
+  color: rgb(var(--text-primary));
+  background: rgb(var(--bg-page));
 }
 
 .header {
-  background: #fff;
-  border-bottom: 1px solid #ececec;
-  padding: 12px 16px;
+  background: rgb(var(--bg-page));
+  border-bottom: 1px solid rgb(var(--border));
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -26,23 +57,27 @@ body {
   z-index: 10;
 }
 .header h1 { font-size: 15px; font-weight: 600; }
-.header .back-btn {
-  padding: 6px 12px;
+.header .btn {
+  padding: 5px 12px;
   font-size: 13px;
-  border: 1px solid #e2e3e7;
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
-  background: #fff;
-  color: #60646c;
+  background: rgb(var(--bg-card));
+  color: rgb(var(--text-secondary));
   text-decoration: none;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.4;
 }
-.header .back-btn:hover { background: #ebebec; }
+.header .btn:hover { background: rgb(var(--bg-surface)); color: rgb(var(--text-primary)); }
 
 .container { padding: 24px 16px; max-width: 960px; margin: 0 auto; }
 
 .card-section {
-  background: #fff;
-  border: 1px solid #ececec;
+  background: rgb(var(--bg-card));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
@@ -52,7 +87,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #60646c;
+  color: rgb(var(--text-secondary));
   margin-bottom: 12px;
 }
 
@@ -62,26 +97,26 @@ body {
   gap: 12px;
 }
 .stat-card {
-  background: #f9f9fb;
-  border: 1px solid #ebebec;
+  background: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   padding: 12px;
 }
 .stat-card .stat-label {
   font-size: 11px;
-  color: #8a8f9b;
+  color: rgb(var(--text-muted));
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 .stat-card .stat-value {
   font-size: 22px;
   font-weight: 600;
-  color: #1c1e21;
+  color: rgb(var(--text-primary));
   margin-top: 2px;
 }
 .stat-card .stat-sub {
   font-size: 11px;
-  color: #8a8f9b;
+  color: rgb(var(--text-muted));
   margin-top: 2px;
 }
 
@@ -93,16 +128,16 @@ table {
 th {
   text-align: left;
   font-weight: 600;
-  color: #60646c;
+  color: rgb(var(--text-secondary));
   padding: 8px 10px;
-  border-bottom: 1px solid #ebebec;
+  border-bottom: 1px solid rgb(var(--border));
 }
 td {
   padding: 8px 10px;
-  border-bottom: 1px solid #f1f2f4;
-  color: #1c1e21;
+  border-bottom: 1px solid rgb(var(--border));
+  color: rgb(var(--text-primary));
 }
-tr:hover td { background: #f9f9fb; }
+tr:hover td { background: rgb(var(--bg-surface)); }
 
 .badge {
   display: inline-block;
@@ -111,38 +146,38 @@ tr:hover td { background: #f9f9fb; }
   font-size: 11px;
   font-weight: 500;
 }
-.badge-create { background: #e6f7ef; color: #12a594; }
-.badge-close { background: #e8f0fe; color: #2781f6; }
-.badge-edit { background: #fef3cd; color: #b07800; }
-.badge-overwrite { background: #fde8ea; color: #e54666; }
-.badge-cron { background: #f0f0f2; color: #60646c; }
-.badge-stage { background: #e8f0fe; color: #2781f6; }
+.badge-create { background: rgb(var(--green) / 0.15); color: rgb(var(--green)); }
+.badge-close { background: rgb(var(--accent) / 0.15); color: rgb(var(--accent)); }
+.badge-edit { background: rgb(var(--amber) / 0.15); color: rgb(180 120 0); }
+.badge-overwrite { background: rgb(var(--red) / 0.1); color: rgb(var(--red)); }
+.badge-cron { background: rgb(var(--text-muted) / 0.15); color: rgb(var(--text-secondary)); }
+.badge-stage { background: rgb(var(--accent) / 0.15); color: rgb(var(--accent)); }
 
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  color: #8a8f9b;
+  color: rgb(var(--text-muted));
   font-size: 14px;
 }
 .spinner {
   width: 18px; height: 18px;
-  border: 2px solid #e2e3e7;
-  border-top-color: #2781f6;
+  border: 2px solid rgb(var(--border));
+  border-top-color: rgb(var(--accent));
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   margin-right: 8px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty { text-align: center; padding: 24px; color: #8a8f9b; font-size: 13px; }
+.empty { text-align: center; padding: 24px; color: rgb(var(--text-muted)); font-size: 13px; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <a href="/kanban" class="back-btn">Volver al Kanban</a>
+  <a href="/kanban" class="btn">Volver al Kanban</a>
   <h1>Dashboard de Agentes</h1>
 </div>
 
@@ -245,7 +280,7 @@ function render(agents, history) {
           <tbody>
             ${agents.map(a => `
               <tr>
-                <td><strong>${escapeHtml(a.nombre)}</strong><br><small style="color:#8a8f9b">${escapeHtml(a.email)}</small></td>
+                <td><strong>${escapeHtml(a.nombre)}</strong><br><small style="color:rgb(var(--text-muted))">${escapeHtml(a.email)}</small></td>
                 <td>${a.tasks_created}</td>
                 <td>${a.tasks_closed}</td>
                 <td>${a.tasks_overwritten}</td>
@@ -290,7 +325,7 @@ function render(agents, history) {
 
 loadData().catch(err => {
   document.getElementById('app').innerHTML =
-    `<div style="background:#fde8ea;color:#e54666;border:1px solid #f5c6cb;border-radius:6px;padding:10px 14px;margin:16px;font-size:13px;">
+    `<div class="error-banner" style="background:rgb(var(--red) / 0.1);color:rgb(var(--red));border:1px solid rgb(var(--red) / 0.2);border-radius:6px;padding:10px 14px;margin:16px;font-size:13px;">
       <strong>Error:</strong> ${escapeHtml(err.message)}
     </div>`;
 });

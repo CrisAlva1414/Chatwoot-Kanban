@@ -122,11 +122,11 @@ Con esos dos JSONs confirmados, se puede cerrar la Etapa 1 y comenzar la Etapa 2
 
 | Etapa | Contenido | Estado |
 |---|---|---|
-| **Etapa 0** | Cloudflare Access + validación JWT en backend + tabla `agentes` | Pendiente |
-| **Etapa 1** | Lectura desde Chatwoot — `/conversations/filter` y `/custom_attribute_definitions` | Entregado (en producción con ajustes del desarrollador) |
-| **Etapa 2** | Escritura puntual — `POST /custom_attributes` sobre conversación de prueba + validación de webhook `conversation_updated` | Pendiente |
-| **Etapa 3** | Feature 1: Kanban completo con drag & drop y sincronización entre agentes | Pendiente |
-| **Etapa 4** | Feature 2: tareas completas — modal de creación, cron, bloqueo 1-activa, panel histórico | Pendiente |
+| **Etapa 0** | Cloudflare Access + validación JWT en backend + tabla `agentes` | Parcial (tabla existe, JWT no enforced) |
+| **Etapa 1** | Lectura desde Chatwoot — `/conversations/filter` y `/custom_attribute_definitions` | Completada |
+| **Etapa 2** | Escritura puntual — `POST /custom_attributes` + webhook `conversation_updated` | Completada |
+| **Etapa 3** | Feature 1: Kanban completo con drag & drop y sincronización entre agentes | Completada (sesión 003-004) |
+| **Etapa 4** | Feature 2: tareas completas — CRUD, cron, bloqueo 1-activa, dashboard | Completada (sesión 004) |
 
 ---
 

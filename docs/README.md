@@ -37,3 +37,4 @@ Bitácora de trabajo para que el LLM retome contexto rápidamente:
 | 002 | 2026-07-09 | Inicialización Docker, docs, lint | [sesiones/002-2026-07-09-inicializacion-docker-y-docs.md](sesiones/002-2026-07-09-inicializacion-docker-y-docs.md) |
 | 003 | 2026-07-13 | Fix producción, tests, seguridad Docker | [sesiones/003-2026-07-13-fix-produccion-y-seguridad-docker.md](sesiones/003-2026-07-13-fix-produccion-y-seguridad-docker.md) |
 | 004 | 2026-07-15 | Drag & drop fix, sistema de tareas, dashboard | [sesiones/004-2026-07-15-drag-drop-tareas-dashboard.md](sesiones/004-2026-07-15-drag-drop-tareas-dashboard.md) |
+| 005 | 2026-07-16 | Frontend Chatwoot-consistente y client robusto | [sesiones/005-2026-07-16-frontend-tokens-y-client-robusto.md](sesiones/005-2026-07-16-frontend-tokens-y-client-robusto.md) |
