@@ -146,8 +146,7 @@ async def upsert_task(
     async with pool.acquire() as conn:
         existing = await conn.fetchrow(
             """SELECT id, mensaje, fecha_vencimiento, estado, creado_por, created_at
-               FROM tareas WHERE conversation_id = $1
-               AND estado NOT IN ('tarea_cerrada')""",
+               FROM tareas WHERE conversation_id = $1""",
             conversation_id,
         )
         if existing:
