@@ -1,9 +1,9 @@
-name: Build and Publish Docker Image
+name: Build and Publish Docker Image (develop)
 
 on:
   push:
     branches:
-      - main
+      - develop
 
 env:
   REGISTRY: ghcr.io
@@ -32,6 +32,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=develop
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

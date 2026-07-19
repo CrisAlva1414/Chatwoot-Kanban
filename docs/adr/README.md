@@ -18,6 +18,9 @@ usando el formato [ADR](000-template.md).
 | 009 | Aceptado | [Estructura del repositorio](009-estructura-del-repositorio.md) |
 | 010 | Aceptado | [Deploy y exposición (Docker + Tunnel)](010-deploy-y-exposicion.md) |
 | 011 | Aceptado | [Integración con Chatwoot por etapas](011-integracion-con-chatwoot.md) |
+| 012 | Aceptado | [Operaciones de escritura en Kanban](012-operaciones-escritura-kanban.md) |
+| 013 | Aceptado | [Modelo de ramas y gate de protección](013-modelo-ramas-y-gate-proteccion.md) |
+| 015 | Aceptado | [Pipeline de CI/CD](015-pipeline-ci-cd.md) |
 
 ## Estado posible
 
