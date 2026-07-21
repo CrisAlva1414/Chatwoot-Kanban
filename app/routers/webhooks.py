@@ -1,10 +1,13 @@
 import hashlib
 import hmac
+import logging
 
 from fastapi import APIRouter, HTTPException, Request
 
 from app.config import settings
-from app.database import get_pool
+from app.database import get_pool, sync_task_from_chatwoot
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -48,4 +51,18 @@ async def conversation_updated(request: Request):
         data.get("event", "unknown"),
         body.decode(),
     )
+
+    conv_id = conversation.get("id")
+    custom_attrs = conversation.get("custom_attributes") or {}
+    if conv_id and (
+        custom_attrs.get("kanban_view_mensaje")
+        or custom_attrs.get("kanban_view_fecha_termino")
+    ):
+        try:
+            result = await sync_task_from_chatwoot(conv_id, custom_attrs)
+            if result:
+                logger.info("Webhook sync conv %s: %s", conv_id, result["action"])
+        except Exception as exc:
+            logger.error("Webhook sync failed for conv %s: %s", conv_id, exc)
+
     return {"status": "ok", "event_id": event_id}

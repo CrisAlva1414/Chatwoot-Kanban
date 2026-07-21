@@ -1,5 +1,6 @@
 import json
 import logging
+from contextlib import suppress
 from datetime import date
 
 import asyncpg
@@ -299,6 +300,65 @@ async def cron_tick() -> dict:
             transitions["failed"] += 1
 
     return transitions
+
+
+async def sync_task_from_chatwoot(
+    conversation_id: int,
+    custom_attributes: dict,
+) -> dict | None:
+    mensaje = (custom_attributes.get("kanban_view_mensaje") or "").strip()
+    fecha_raw = (custom_attributes.get("kanban_view_fecha_termino") or "").strip()
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, estado FROM tareas WHERE conversation_id = $1",
+            conversation_id,
+        )
+
+        if not mensaje and not fecha_raw:
+            if row and row["estado"] != "tarea_cerrada":
+                agent = await get_or_create_agent("bot@i-labs.cl")
+                await conn.execute(
+                    """UPDATE tareas
+                       SET estado = 'tarea_cerrada', cerrado_por = $2,
+                           cerrado_en = now()
+                       WHERE id = $1""",
+                    row["id"],
+                    agent["id"],
+                )
+                return {"action": "closed"}
+            return None
+
+        fecha = date.today()
+        if fecha_raw:
+            with suppress(ValueError):
+                fecha = date.fromisoformat(fecha_raw[:10])
+
+        if row:
+            await conn.execute(
+                """UPDATE tareas
+                   SET mensaje = $2, fecha_vencimiento = $3,
+                       estado = 'tarea_activa',
+                       cerrado_por = NULL, cerrado_en = NULL
+                   WHERE id = $1""",
+                row["id"],
+                mensaje,
+                fecha,
+            )
+            return {"action": "updated"}
+
+        agent_ = await get_or_create_agent("bot@i-labs.cl")
+        result = await conn.fetchrow(
+            """INSERT INTO tareas
+               (conversation_id, mensaje, fecha_vencimiento, creado_por)
+               VALUES ($1, $2, $3, $4)
+               RETURNING id""",
+            conversation_id,
+            mensaje or "(Sincronizado desde Chatwoot)",
+            fecha,
+            agent_["id"],
+        )
+        return {"action": "created", "task_id": result["id"]}
 
 
 async def get_agent_stats() -> list[dict]:
