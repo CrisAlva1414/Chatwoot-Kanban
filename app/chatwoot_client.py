@@ -86,9 +86,10 @@ class ChatwootClient:
                 raise
         raise last_exc  # type: ignore[misc]
 
-    async def filter_conversations(self, payload: dict) -> dict:
+    async def filter_conversations(self, payload: dict, page: int = 1) -> dict:
         url = f"{self._account_path}/conversations/filter"
-        resp = await self._request("POST", url, json=payload)
+        body = {**payload, "page": page}
+        resp = await self._request("POST", url, json=body)
         return resp.json()
 
     async def get_custom_attribute_definitions(self) -> dict:

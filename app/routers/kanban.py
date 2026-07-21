@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import date
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from app.database import (
     get_audit_history,
     get_or_create_agent,
     get_tasks_for_conversations,
+    sync_task_from_chatwoot,
     upsert_task,
     write_audit_log,
 )
@@ -326,11 +328,16 @@ async def kanban_config():
 
     pipeline_attr = _find_pipeline_attribute(definitions)
     if not pipeline_attr:
-        return {"columns": [], "chatwoot_url": chatwoot_client.base_url}
+        return {
+            "columns": [],
+            "chatwoot_url": chatwoot_client.base_url,
+            "chatwoot_account_id": chatwoot_client.account_id,
+        }
 
     return {
         "columns": pipeline_attr.get("attribute_values", []),
         "chatwoot_url": chatwoot_client.base_url,
+        "chatwoot_account_id": chatwoot_client.account_id,
     }
 
 
@@ -346,7 +353,11 @@ async def kanban_board(stage: str | None = None):
 
     pipeline_attr = _find_pipeline_attribute(definitions)
     if not pipeline_attr:
-        return {"columns": [], "chatwoot_url": chatwoot_client.base_url}
+        return {
+            "columns": [],
+            "chatwoot_url": chatwoot_client.base_url,
+            "chatwoot_account_id": chatwoot_client.account_id,
+        }
 
     stages = pipeline_attr.get("attribute_values", [])
     target_stages = [stage] if stage else stages
@@ -363,12 +374,31 @@ async def kanban_board(stage: str | None = None):
                 }
             ]
         }
+        all_cards = []
+        page = 1
         try:
-            resp = await chatwoot_client.filter_conversations(payload)
-            cards = _parse_conversations(resp)
-            conv_ids = [c["id"] for c in cards if c.get("id")]
+            while True:
+                resp = await chatwoot_client.filter_conversations(payload, page=page)
+                cards = _parse_conversations(resp)
+                all_cards.extend(cards)
+                meta = _extract_meta(resp)
+                all_count = meta.get("all_count", 0)
+                page_size = 25
+                total_pages = (
+                    max(1, math.ceil(all_count / page_size)) if all_count else 1
+                )
+                if page >= total_pages:
+                    break
+                page += 1
+
+            for card in all_cards:
+                await sync_task_from_chatwoot(
+                    card["id"], card.get("custom_attributes") or {}
+                )
+
+            conv_ids = [c["id"] for c in all_cards if c.get("id")]
             tasks_map = await get_tasks_for_conversations(conv_ids)
-            for card in cards:
+            for card in all_cards:
                 task = tasks_map.get(card["id"])
                 if task:
                     card["task"] = {
@@ -378,7 +408,7 @@ async def kanban_board(stage: str | None = None):
                         "fecha_vencimiento": str(task["fecha_vencimiento"]),
                         "creado_por": task["creado_por_nombre"],
                     }
-            columns.append({"stage": s, "conversations": cards})
+            columns.append({"stage": s, "conversations": all_cards})
         except Exception as exc:
             logger.error("Failed to filter conversations for stage '%s': %s", s, exc)
             raise HTTPException(
@@ -386,7 +416,11 @@ async def kanban_board(stage: str | None = None):
                 detail=f"Chatwoot API error filtering stage '{s}': {exc}",
             ) from exc
 
-    return {"columns": columns, "chatwoot_url": chatwoot_client.base_url}
+    return {
+        "columns": columns,
+        "chatwoot_url": chatwoot_client.base_url,
+        "chatwoot_account_id": chatwoot_client.account_id,
+    }
 
 
 @router.get("/debug-status")
@@ -451,6 +485,19 @@ def _find_pipeline_attribute(definitions: list) -> dict | None:
         if d.get("attribute_key") == PIPELINE_ATTR_KEY:
             return d
     return None
+
+
+def _extract_meta(resp: dict) -> dict:
+    meta = resp.get("meta") or {}
+    if meta:
+        return meta
+    for key in ("payload", "data"):
+        val = resp.get(key)
+        if isinstance(val, dict):
+            meta = val.get("meta") or {}
+            if meta:
+                return meta
+    return {}
 
 
 def _parse_conversations(resp: dict | list) -> list:

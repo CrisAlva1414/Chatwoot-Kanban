@@ -547,6 +547,7 @@ const API_MOVE_STAGE = '/kanban/board';
 const API_TASKS = '/kanban/tasks';
 
 let chatwootUrl = '';
+let chatwootAccountId = '';
 let allColumns = [];
 let activeFilter = '';
 let currentModalCardId = null;
@@ -624,6 +625,7 @@ async function loadConfig() {
   const res = await fetch(API_CONFIG);
   const data = await res.json();
   chatwootUrl = data.chatwoot_url || '';
+  chatwootAccountId = data.chatwoot_account_id || '';
   allColumns = data.columns || [];
   return data;
 }
@@ -636,16 +638,15 @@ async function loadBoard(stage) {
     const msg = data.detail || `HTTP ${res.status}`;
     throw new Error(msg);
   }
+  chatwootAccountId = data.chatwoot_account_id || chatwootAccountId;
   return data;
 }
 
 function openConversation(id) {
   if (!chatwootUrl || !id) return;
-  const accountMatch = chatwootUrl.match(/\/accounts\/(\d+)/);
-  const accountId = accountMatch ? accountMatch[1] : '';
   const base = chatwootUrl.replace(/\/+$/, '');
-  const url = accountId
-    ? `${base}/app/accounts/${accountId}/conversations/${id}`
+  const url = chatwootAccountId
+    ? `${base}/app/accounts/${chatwootAccountId}/conversations/${id}`
     : `https://chatwoot.ruki-bot.com/app/accounts/1/conversations/${id}`;
   window.open(url, '_blank');
 }
@@ -669,9 +670,10 @@ function openTaskModal(cardData) {
     tarea_cerrada: 'Cerrada',
   };
 
-  const accountMatch = (chatwootUrl || '').match(/\/accounts\/(\d+)/);
-  const accountId = accountMatch ? accountMatch[1] : '1';
-  const chatwootLink = `${chatwootUrl.replace(/\/+$/, '')}/app/accounts/${accountId}/conversations/${cardData.id}`;
+  const base = chatwootUrl.replace(/\/+$/, '');
+  const chatwootLink = chatwootAccountId
+    ? `${base}/app/accounts/${chatwootAccountId}/conversations/${cardData.id}`
+    : `https://chatwoot.ruki-bot.com/app/accounts/1/conversations/${cardData.id}`;
 
   let taskSection = '';
   if (task) {
