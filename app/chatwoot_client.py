@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 
 import httpx
 
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
 _RETRY_DELAYS = [0.5, 1.0, 2.0]
+_ATTR_CACHE_TTL = 300  # 5 minutos
 
 
 class ChatwootClient:
@@ -22,6 +24,7 @@ class ChatwootClient:
             "Content-Type": "application/json",
         }
         self._client: httpx.AsyncClient | None = None
+        self._attr_cache: tuple[float, list] | None = None
 
     async def init(self) -> None:
         if self._client is None or self._client.is_closed:
@@ -92,10 +95,15 @@ class ChatwootClient:
         resp = await self._request("POST", url, json=body)
         return resp.json()
 
-    async def get_custom_attribute_definitions(self) -> dict:
+    async def get_custom_attribute_definitions(self) -> list:
+        now = time.time()
+        if self._attr_cache and (now - self._attr_cache[0]) < _ATTR_CACHE_TTL:
+            return self._attr_cache[1]
         url = f"{self._account_path}/custom_attribute_definitions"
         resp = await self._request("GET", url)
-        return resp.json()
+        definitions = resp.json()
+        self._attr_cache = (now, definitions)
+        return definitions
 
     async def update_custom_attributes(
         self, conversation_id: int, attributes: dict
@@ -110,8 +118,11 @@ class ChatwootClient:
         return resp.json()
 
     async def safe_update_custom_attributes(
-        self, conversation_id: int, attributes: dict
+        self, conversation_id: int, attributes: dict, *, skip_read: bool = False
     ) -> dict:
+        if skip_read:
+            return await self.update_custom_attributes(conversation_id, attributes)
+
         try:
             conv = await self.get_conversation(conversation_id)
             existing = conv.get("custom_attributes") or {}

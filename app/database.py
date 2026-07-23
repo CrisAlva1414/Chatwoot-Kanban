@@ -287,6 +287,7 @@ async def cron_tick() -> dict:
             await chatwoot_client.safe_update_custom_attributes(
                 task["conversation_id"],
                 {"kanban_view_fecha_termino": fecha_iso},
+                skip_read=True,
             )
             await mark_task_synced(task["id"])
             transitions["synced"] += 1
@@ -359,6 +360,99 @@ async def sync_task_from_chatwoot(
             agent_["id"],
         )
         return {"action": "created", "task_id": result["id"]}
+
+
+async def batch_sync_tasks_from_chatwoot(conversations_data: list[dict]) -> dict:
+    if not conversations_data:
+        return {"updated": 0, "created": 0, "closed": 0}
+
+    entries = []
+    for conv in conversations_data:
+        attrs = conv.get("custom_attributes") or {}
+        mensaje = (attrs.get("kanban_view_mensaje") or "").strip()
+        fecha_raw = (attrs.get("kanban_view_fecha_termino") or "").strip()
+        fecha = date.today()
+        if fecha_raw:
+            with suppress(ValueError):
+                fecha = date.fromisoformat(fecha_raw[:10])
+        entries.append({
+            "conversation_id": conv["conversation_id"],
+            "mensaje": mensaje,
+            "fecha_raw": fecha_raw,
+            "fecha": fecha,
+        })
+
+    async with pool.acquire() as conn:
+        conv_ids = [e["conversation_id"] for e in entries if e["conversation_id"]]
+        if not conv_ids:
+            return {"updated": 0, "created": 0, "closed": 0}
+
+        rows = await conn.fetch(
+            "SELECT id, conversation_id, estado"
+            " FROM tareas WHERE conversation_id = ANY($1)",
+            conv_ids,
+        )
+        existing_map = {row["conversation_id"]: dict(row) for row in rows}
+
+        updates: list[tuple] = []
+        creates: list[tuple] = []
+        closes: list[tuple] = []
+        bot_agent_id: int | None = None
+
+        for entry in entries:
+            conv_id = entry["conversation_id"]
+            existing = existing_map.get(conv_id)
+
+            if not entry["mensaje"] and not entry["fecha_raw"]:
+                if existing and existing["estado"] != "tarea_cerrada":
+                    if bot_agent_id is None:
+                        agent = await get_or_create_agent("bot@i-labs.cl")
+                        bot_agent_id = agent["id"]
+                    closes.append((existing["id"], bot_agent_id))
+                continue
+
+            if existing:
+                updates.append((
+                    existing["id"],
+                    entry["mensaje"] or "(Sincronizado desde Chatwoot)",
+                    entry["fecha"],
+                ))
+            else:
+                if bot_agent_id is None:
+                    agent = await get_or_create_agent("bot@i-labs.cl")
+                    bot_agent_id = agent["id"]
+                creates.append((
+                    conv_id,
+                    entry["mensaje"] or "(Sincronizado desde Chatwoot)",
+                    entry["fecha"],
+                    bot_agent_id,
+                ))
+
+        if updates:
+            await conn.executemany(
+                """UPDATE tareas
+                   SET mensaje = $2, fecha_vencimiento = $3,
+                       estado = 'tarea_activa',
+                       cerrado_por = NULL, cerrado_en = NULL
+                   WHERE id = $1""",
+                updates,
+            )
+        if creates:
+            await conn.executemany(
+                """INSERT INTO tareas
+                   (conversation_id, mensaje, fecha_vencimiento, creado_por)
+                   VALUES ($1, $2, $3, $4)""",
+                creates,
+            )
+        if closes:
+            await conn.executemany(
+                """UPDATE tareas
+                   SET estado = 'tarea_cerrada', cerrado_por = $2, cerrado_en = now()
+                   WHERE id = $1""",
+                closes,
+            )
+
+    return {"updated": len(updates), "created": len(creates), "closed": len(closes)}
 
 
 async def get_agent_stats() -> list[dict]:

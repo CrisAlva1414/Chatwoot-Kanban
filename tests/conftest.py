@@ -97,9 +97,9 @@ def mock_chatwoot_ok():
             return_value={},
         ),
         patch(
-            "app.routers.kanban.sync_task_from_chatwoot",
+            "app.routers.kanban.batch_sync_tasks_from_chatwoot",
             new_callable=AsyncMock,
-            return_value=None,
+            return_value={"updated": 0, "created": 0, "closed": 0},
         ),
     ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
@@ -120,9 +120,9 @@ def mock_chatwoot_empty():
             return_value={},
         ),
         patch(
-            "app.routers.kanban.sync_task_from_chatwoot",
+            "app.routers.kanban.batch_sync_tasks_from_chatwoot",
             new_callable=AsyncMock,
-            return_value=None,
+            return_value={"updated": 0, "created": 0, "closed": 0},
         ),
     ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
@@ -158,9 +158,9 @@ def mock_chatwoot_flat_response():
             return_value={},
         ),
         patch(
-            "app.routers.kanban.sync_task_from_chatwoot",
+            "app.routers.kanban.batch_sync_tasks_from_chatwoot",
             new_callable=AsyncMock,
-            return_value=None,
+            return_value={"updated": 0, "created": 0, "closed": 0},
         ),
     ):
         mock_client.get_custom_attribute_definitions = AsyncMock(

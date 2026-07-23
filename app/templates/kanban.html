@@ -552,6 +552,12 @@ let allColumns = [];
 let activeFilter = '';
 let currentModalCardId = null;
 let pollingTimer = null;
+let isTabVisible = true;
+
+document.addEventListener('visibilitychange', () => {
+  isTabVisible = !document.hidden;
+  if (isTabVisible) refreshBoard();
+});
 
 const $ = (s, p) => (p || document).querySelector(s);
 const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
@@ -1099,7 +1105,7 @@ function showToast(message, type = 'info') {
 function startPolling() {
   stopPolling();
   pollingTimer = setInterval(async () => {
-    if (currentModalCardId) return;
+    if (!isTabVisible || currentModalCardId) return;
     try {
       const data = await loadBoard();
       renderBoard(data);

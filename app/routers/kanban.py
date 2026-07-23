@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import math
 from datetime import date
@@ -9,6 +10,7 @@ from pydantic import BaseModel
 
 from app.chatwoot_client import chatwoot_client
 from app.database import (
+    batch_sync_tasks_from_chatwoot,
     close_task,
     cron_tick,
     edit_task,
@@ -17,7 +19,6 @@ from app.database import (
     get_audit_history,
     get_or_create_agent,
     get_tasks_for_conversations,
-    sync_task_from_chatwoot,
     upsert_task,
     write_audit_log,
 )
@@ -100,7 +101,8 @@ async def move_stage(conversation_id: int, body: MoveStageRequest, request: Requ
             new_state={"stage_to": body.stage},
         )
         await chatwoot_client.safe_update_custom_attributes(
-            conversation_id, {PIPELINE_ATTR_KEY: body.stage}
+            conversation_id, {PIPELINE_ATTR_KEY: body.stage},
+            skip_read=True,
         )
         await write_audit_log(
             conversation_id=conversation_id,
@@ -160,7 +162,9 @@ async def create_task(body: CreateTaskRequest, request: Request):
             TASK_MSG_ATTR_KEY: body.mensaje,
             TASK_DATE_ATTR_KEY: fecha_iso,
         }
-        await chatwoot_client.safe_update_custom_attributes(body.conversation_id, attrs)
+        await chatwoot_client.safe_update_custom_attributes(
+            body.conversation_id, attrs, skip_read=True,
+        )
     except Exception as exc:
         logger.error(
             "Chatwoot sync failed for task on conv %s: %s",
@@ -214,7 +218,9 @@ async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Req
                 TASK_MSG_ATTR_KEY: body.mensaje,
                 TASK_DATE_ATTR_KEY: fecha_iso,
             }
-            await chatwoot_client.safe_update_custom_attributes(conv_id, attrs)
+            await chatwoot_client.safe_update_custom_attributes(
+                conv_id, attrs, skip_read=True,
+            )
     except Exception as exc:
         logger.error("Chatwoot sync failed for task %s: %s", task_id, exc)
         chatwoot_ok = False
@@ -255,7 +261,8 @@ async def close_task_endpoint(task_id: int, request: Request):
         conv_id = previous.get("conversation_id")
         if conv_id:
             await chatwoot_client.safe_update_custom_attributes(
-                conv_id, {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""}
+                conv_id, {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""},
+                skip_read=True,
             )
     except Exception as exc:
         logger.error("Chatwoot sync failed closing task %s: %s", task_id, exc)
@@ -362,8 +369,7 @@ async def kanban_board(stage: str | None = None):
     stages = pipeline_attr.get("attribute_values", [])
     target_stages = [stage] if stage else stages
 
-    columns = []
-    for s in target_stages:
+    async def _load_stage(s: str) -> dict:
         payload = {
             "payload": [
                 {
@@ -391,10 +397,14 @@ async def kanban_board(stage: str | None = None):
                     break
                 page += 1
 
-            for card in all_cards:
-                await sync_task_from_chatwoot(
-                    card["id"], card.get("custom_attributes") or {}
-                )
+            conversations_data = [
+                {
+                    "conversation_id": c["id"],
+                    "custom_attributes": c.get("custom_attributes") or {},
+                }
+                for c in all_cards if c.get("id")
+            ]
+            await batch_sync_tasks_from_chatwoot(conversations_data)
 
             conv_ids = [c["id"] for c in all_cards if c.get("id")]
             tasks_map = await get_tasks_for_conversations(conv_ids)
@@ -408,7 +418,7 @@ async def kanban_board(stage: str | None = None):
                         "fecha_vencimiento": str(task["fecha_vencimiento"]),
                         "creado_por": task["creado_por_nombre"],
                     }
-            columns.append({"stage": s, "conversations": all_cards})
+            return {"stage": s, "conversations": all_cards}
         except Exception as exc:
             logger.error("Failed to filter conversations for stage '%s': %s", s, exc)
             raise HTTPException(
@@ -416,8 +426,11 @@ async def kanban_board(stage: str | None = None):
                 detail=f"Chatwoot API error filtering stage '{s}': {exc}",
             ) from exc
 
+    stage_tasks = [_load_stage(s) for s in target_stages]
+    results = await asyncio.gather(*stage_tasks)
+
     return {
-        "columns": columns,
+        "columns": list(results),
         "chatwoot_url": chatwoot_client.base_url,
         "chatwoot_account_id": chatwoot_client.account_id,
     }
