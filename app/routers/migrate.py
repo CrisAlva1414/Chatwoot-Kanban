@@ -44,13 +44,13 @@ async def migrate_conversation_attributes_to_contacts():
                 ]
             }
             try:
-                resp = await chatwoot_client.filter_conversations(
-                    payload, page=page
-                )
+                resp = await chatwoot_client.filter_conversations(payload, page=page)
             except Exception as exc:
                 logger.error(
                     "Failed to fetch conversations for stage '%s' page %s: %s",
-                    stage, page, exc,
+                    stage,
+                    page,
+                    exc,
                 )
                 break
 
@@ -125,21 +125,25 @@ async def migrate_conversation_attributes_to_contacts():
                 contact_id, attrs_to_set
             )
             result.contacts_updated += 1
-            result.details.append({
-                "contact_id": contact_id,
-                "contact_name": data["contact_name"],
-                "attrs_set": list(attrs_to_set.keys()),
-                "from_conv": data["_conv_id"],
-                "status": "ok",
-            })
+            result.details.append(
+                {
+                    "contact_id": contact_id,
+                    "contact_name": data["contact_name"],
+                    "attrs_set": list(attrs_to_set.keys()),
+                    "from_conv": data["_conv_id"],
+                    "status": "ok",
+                }
+            )
         except Exception as exc:
             result.contacts_failed += 1
-            result.details.append({
-                "contact_id": contact_id,
-                "contact_name": data["contact_name"],
-                "status": "failed",
-                "error": str(exc),
-            })
+            result.details.append(
+                {
+                    "contact_id": contact_id,
+                    "contact_name": data["contact_name"],
+                    "status": "failed",
+                    "error": str(exc),
+                }
+            )
 
     pool = get_pool()
     for contact_id, data in contact_map.items():
@@ -182,11 +186,13 @@ async def migrate_db_tasks_to_contact_id():
             contact_id = sender.get("id")
             if not contact_id:
                 failed += 1
-                details.append({
-                    "task_id": row["id"],
-                    "conversation_id": conv_id,
-                    "status": "no_contact",
-                })
+                details.append(
+                    {
+                        "task_id": row["id"],
+                        "conversation_id": conv_id,
+                        "status": "no_contact",
+                    }
+                )
                 continue
 
             await pool.execute(
@@ -195,20 +201,24 @@ async def migrate_db_tasks_to_contact_id():
                 row["id"],
             )
             migrated += 1
-            details.append({
-                "task_id": row["id"],
-                "conversation_id": conv_id,
-                "contact_id": contact_id,
-                "status": "ok",
-            })
+            details.append(
+                {
+                    "task_id": row["id"],
+                    "conversation_id": conv_id,
+                    "contact_id": contact_id,
+                    "status": "ok",
+                }
+            )
         except Exception as exc:
             failed += 1
-            details.append({
-                "task_id": row["id"],
-                "conversation_id": conv_id,
-                "status": "failed",
-                "error": str(exc),
-            })
+            details.append(
+                {
+                    "task_id": row["id"],
+                    "conversation_id": conv_id,
+                    "status": "failed",
+                    "error": str(exc),
+                }
+            )
 
     return {
         "total": len(rows),
@@ -294,11 +304,13 @@ async def cleanup_duplicate_tasks():
                 )
                 result["closed"] += 1
         except Exception as exc:
-            result["errors"].append({
-                "task_id": row["id"],
-                "conversation_id": conv_id,
-                "error": str(exc),
-            })
+            result["errors"].append(
+                {
+                    "task_id": row["id"],
+                    "conversation_id": conv_id,
+                    "error": str(exc),
+                }
+            )
 
     return result
 

@@ -100,7 +100,8 @@ async def move_stage(contact_id: int, body: MoveStageRequest, request: Request):
             new_state={"stage_to": body.stage},
         )
         await chatwoot_client.safe_update_contact_custom_attributes(
-            contact_id, {PIPELINE_ATTR_KEY: body.stage},
+            contact_id,
+            {PIPELINE_ATTR_KEY: body.stage},
             skip_read=True,
         )
         await write_audit_log(
@@ -161,7 +162,9 @@ async def create_task(body: CreateTaskRequest, request: Request):
             TASK_DATE_ATTR_KEY: fecha_iso,
         }
         await chatwoot_client.safe_update_contact_custom_attributes(
-            body.contact_id, attrs, skip_read=True,
+            body.contact_id,
+            attrs,
+            skip_read=True,
         )
     except Exception as exc:
         logger.error(
@@ -216,7 +219,9 @@ async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Req
                 TASK_DATE_ATTR_KEY: fecha_iso,
             }
             await chatwoot_client.safe_update_contact_custom_attributes(
-                cid, attrs, skip_read=True,
+                cid,
+                attrs,
+                skip_read=True,
             )
     except Exception as exc:
         logger.error("Chatwoot sync failed for task %s: %s", task_id, exc)
@@ -258,7 +263,8 @@ async def close_task_endpoint(task_id: int, request: Request):
         cid = previous.get("contact_id")
         if cid:
             await chatwoot_client.safe_update_contact_custom_attributes(
-                cid, {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""},
+                cid,
+                {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""},
                 skip_read=True,
             )
     except Exception as exc:
@@ -396,7 +402,8 @@ async def kanban_board(stage: str | None = None):
                     "contact_id": c["id"],
                     "custom_attributes": c.get("custom_attributes") or {},
                 }
-                for c in all_cards if c.get("id")
+                for c in all_cards
+                if c.get("id")
             ]
             await batch_sync_tasks_from_chatwoot(contacts_data)
 
@@ -440,11 +447,11 @@ async def kanban_debug_status():
         status["checks"]["attribute_definitions_count"] = len(definitions)
 
         contact_attrs = [
-            d for d in definitions
-            if d.get("attribute_model") == "contact_attribute"
+            d for d in definitions if d.get("attribute_model") == "contact_attribute"
         ]
         conversation_attrs = [
-            d for d in definitions
+            d
+            for d in definitions
             if d.get("attribute_model") == "conversation_attribute"
         ]
         status["checks"]["contact_attributes_count"] = len(contact_attrs)
