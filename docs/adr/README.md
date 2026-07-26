@@ -12,7 +12,7 @@ usando el formato [ADR](000-template.md).
 | 003 | Aceptado | [Cloudflare Access como auth de agentes](003-cloudflare-access-auth-agentes.md) |
 | 004 | Aceptado | [Audit log aplicativo como atribución real](004-audit-log-aplicativo-atribucion.md) |
 | 005 | Aceptado | [Modelo de datos de tareas (BD propia)](005-modelo-datos-tareas.md) |
-| 006 | Aceptado | [Kanban pipeline sobre custom_attributes](006-kanban-pipeline-custom-attributes.md) |
+| 006 | Suplantado | [Kanban pipeline sobre custom_attributes](006-kanban-pipeline-custom-attributes.md) |
 | 007 | Aceptado | [Stack técnico y deploy](007-stack-tecnico-y-deploy.md) |
 | 008 | Aceptado | [ADR como registro de decisiones](008-adr-como-registro.md) |
 | 009 | Aceptado | [Estructura del repositorio](009-estructura-del-repositorio.md) |
@@ -21,6 +21,7 @@ usando el formato [ADR](000-template.md).
 | 012 | Aceptado | [Operaciones de escritura en Kanban](012-operaciones-escritura-kanban.md) |
 | 013 | Aceptado | [Modelo de ramas y gate de protección](013-modelo-ramas-y-gate-proteccion.md) |
 | 015 | Aceptado | [Pipeline de CI/CD](015-pipeline-ci-cd.md) |
+| 016 | Aceptado | [Migración conversation-based a contact-based](016-migracion-conversation-a-contact-based.md) |
 
 ## Estado posible
 

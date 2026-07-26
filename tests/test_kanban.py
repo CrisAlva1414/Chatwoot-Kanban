@@ -32,7 +32,7 @@ def test_kanban_board_all_stages(client, mock_chatwoot_ok):
     data = response.json()
     assert len(data["columns"]) == 3
     assert data["columns"][0]["stage"] == "Potencial"
-    assert len(data["columns"][0]["conversations"]) == 2
+    assert len(data["columns"][0]["contacts"]) == 2
 
 
 def test_kanban_board_single_stage(client, mock_chatwoot_ok):
@@ -43,12 +43,11 @@ def test_kanban_board_single_stage(client, mock_chatwoot_ok):
     assert data["columns"][0]["stage"] == "Potencial"
 
 
-def test_kanban_board_normalizes_conversations(client, mock_chatwoot_ok):
+def test_kanban_board_normalizes_contacts(client, mock_chatwoot_ok):
     response = client.get("/kanban/board?stage=Potencial")
-    card = response.json()["columns"][0]["conversations"][0]
+    card = response.json()["columns"][0]["contacts"][0]
     assert card["id"] == 101
     assert card["contact_name"] == "Juan Pérez"
-    assert card["last_message"] == "Hola, necesito ayuda"
     expected_attrs = {"kanban_view_fecha_termino": "2026-07-20T23:59:59.999Z"}
     assert card["custom_attributes"] == expected_attrs
 
@@ -56,7 +55,7 @@ def test_kanban_board_normalizes_conversations(client, mock_chatwoot_ok):
 def test_kanban_board_handles_flat_response(client, mock_chatwoot_flat_response):
     response = client.get("/kanban/board?stage=Potencial")
     assert response.status_code == 200
-    cards = response.json()["columns"][0]["conversations"]
+    cards = response.json()["columns"][0]["contacts"]
     assert len(cards) == 1
     assert cards[0]["id"] == 201
 
@@ -64,7 +63,7 @@ def test_kanban_board_handles_flat_response(client, mock_chatwoot_flat_response)
 def test_kanban_board_empty_stage(client, mock_chatwoot_empty):
     response = client.get("/kanban/board?stage=Potencial")
     assert response.status_code == 200
-    assert response.json()["columns"][0]["conversations"] == []
+    assert response.json()["columns"][0]["contacts"] == []
 
 
 def test_kanban_board_chatwoot_error(client, mock_chatwoot_error):
@@ -98,8 +97,8 @@ def test_debug_raw_returns_parsed(client, mock_chatwoot_ok):
     assert response.status_code == 200
     data = response.json()
     assert "raw" in data
-    assert "parsed_conversations" in data
-    assert len(data["parsed_conversations"]) == 2
+    assert "parsed_contacts" in data
+    assert len(data["parsed_contacts"]) == 2
 
 
 def test_move_stage_ok(client, mock_chatwoot_ok):
@@ -112,8 +111,8 @@ def test_move_stage_ok(client, mock_chatwoot_ok):
             "email": "bot@i-labs.cl",
             "nombre": "Bot",
         }
-        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
-            return_value={"id": 101}
+        mock_chatwoot_ok.safe_update_contact_custom_attributes = AsyncMock(
+            return_value={"payload": {"id": 101}}
         )
         response = client.patch(
             "/kanban/board/101/stage",
@@ -148,7 +147,7 @@ def test_move_stage_chatwoot_error(client, mock_chatwoot_ok):
             "email": "bot@i-labs.cl",
             "nombre": "Bot",
         }
-        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
+        mock_chatwoot_ok.safe_update_contact_custom_attributes = AsyncMock(
             side_effect=Exception("Connection refused")
         )
         response = client.patch(
@@ -181,13 +180,13 @@ def test_create_task(client, mock_chatwoot_ok):
         }
         mock_active.return_value = None
         mock_upsert.return_value = {"id": 10, "action": "created"}
-        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
-            return_value={"id": 101}
+        mock_chatwoot_ok.safe_update_contact_custom_attributes = AsyncMock(
+            return_value={"payload": {"id": 101}}
         )
         response = client.post(
             "/kanban/tasks",
             json={
-                "conversation_id": 101,
+                "contact_id": 101,
                 "mensaje": "Enviar propuesta",
                 "fecha_vencimiento": "2026-07-20",
             },
@@ -227,13 +226,13 @@ def test_create_task_overwrite(client, mock_chatwoot_ok):
             "creado_por_nombre": "María",
         }
         mock_upsert.return_value = {"id": 5, "action": "updated"}
-        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
-            return_value={"id": 101}
+        mock_chatwoot_ok.safe_update_contact_custom_attributes = AsyncMock(
+            return_value={"payload": {"id": 101}}
         )
         response = client.post(
             "/kanban/tasks",
             json={
-                "conversation_id": 101,
+                "contact_id": 101,
                 "mensaje": "Nueva tarea",
                 "fecha_vencimiento": "2026-07-25",
             },
@@ -256,12 +255,13 @@ def test_close_task(client, mock_chatwoot_ok):
         mock_close.return_value = {
             "action": "closed",
             "previous": {
-                "conversation_id": 101,
+                "contact_id": 101,
+                "conversation_id": 500,
                 "estado": "tarea_activa",
             },
         }
-        mock_chatwoot_ok.safe_update_custom_attributes = AsyncMock(
-            return_value={"id": 101}
+        mock_chatwoot_ok.safe_update_contact_custom_attributes = AsyncMock(
+            return_value={"payload": {"id": 101}}
         )
         response = client.patch("/kanban/tasks/10/close")
         assert response.status_code == 200
@@ -288,7 +288,7 @@ def test_get_tasks(client):
         "app.routers.kanban.get_active_task", new_callable=AsyncMock
     ) as mock_task:
         mock_task.return_value = None
-        response = client.get("/kanban/tasks?conversation_id=101")
+        response = client.get("/kanban/tasks?contact_id=101")
         assert response.status_code == 200
         assert response.json()["task"] is None
 

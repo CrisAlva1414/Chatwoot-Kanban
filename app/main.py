@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.chatwoot_client import chatwoot_client
 from app.database import close_pool, init_pool
-from app.routers import api, conversations, kanban, webhooks
+from app.routers import api, conversations, kanban, migrate, webhooks
 
 
 @asynccontextmanager
@@ -22,6 +22,7 @@ app.include_router(conversations.router)
 app.include_router(api.router)
 app.include_router(kanban.router)
 app.include_router(webhooks.router)
+app.include_router(migrate.router)
 
 
 @app.get("/health")
