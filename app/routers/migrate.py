@@ -227,13 +227,22 @@ async def migration_status():
         "SELECT COUNT(*) FROM tareas WHERE contact_id IS NOT NULL"
     )
     tasks_without_contact = await pool.fetchval(
-        "SELECT COUNT(*) FROM tareas WHERE contact_id IS NULL"
+        """SELECT COUNT(*) FROM tareas
+           WHERE contact_id IS NULL
+             AND estado NOT IN ('tarea_cerrada')"""
+    )
+
+    tasks_total_active = await pool.fetchval(
+        """SELECT COUNT(*) FROM tareas
+           WHERE estado NOT IN ('tarea_cerrada')"""
     )
 
     return {
         "total_tasks": total_tasks,
+        "total_active_tasks": tasks_total_active,
         "tasks_with_contact_id": tasks_with_contact,
         "tasks_without_contact_id": tasks_without_contact,
+        "tasks_closed": total_tasks - tasks_total_active,
         "migration_complete": tasks_without_contact == 0 and total_tasks > 0,
     }
 
