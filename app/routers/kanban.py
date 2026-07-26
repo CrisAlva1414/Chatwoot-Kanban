@@ -1,10 +1,11 @@
 import asyncio
 import logging
 import math
+import time as time_module
 from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -24,6 +25,10 @@ from app.database import (
 )
 
 logger = logging.getLogger(__name__)
+
+_board_cache: dict[str, tuple[float, dict]] = {}
+_BOARD_CACHE_TTL = 8
+_PAGE_SIZE = 50
 
 router = APIRouter(prefix="/kanban", tags=["kanban"])
 
@@ -59,6 +64,55 @@ async def _get_actor(request: Request) -> tuple[int, str, str]:
         name = email.split("@")[0].replace(".", " ").title()
     agent = await get_or_create_agent(email, name)
     return agent["id"], agent["nombre"], agent["email"]
+
+
+def _get_cached_board(stage: str | None) -> dict | None:
+    key = stage or "__all__"
+    entry = _board_cache.get(key)
+    if entry and (time_module.time() - entry[0]) < _BOARD_CACHE_TTL:
+        return entry[1]
+    return None
+
+
+def _set_cached_board(stage: str | None, data: dict) -> None:
+    _board_cache[stage or "__all__"] = (time_module.time(), data)
+
+
+def _invalidate_board_cache() -> None:
+    _board_cache.clear()
+
+
+async def _bg_sync_task_and_audit(
+    *,
+    contact_id: int,
+    attrs: dict,
+    actor_id: int,
+    actor_name: str,
+    action: str,
+    previous_state: dict | None,
+    new_state: dict | None,
+) -> None:
+    chatwoot_ok = True
+    try:
+        await chatwoot_client.safe_update_contact_custom_attributes(
+            contact_id, attrs, skip_read=True,
+        )
+    except Exception as exc:
+        logger.error(
+            "Background Chatwoot sync failed for contact %s: %s",
+            contact_id, exc,
+        )
+        chatwoot_ok = False
+
+    await write_audit_log(
+        contact_id=contact_id,
+        actor_agent_id=actor_id,
+        actor_name=actor_name,
+        action=action,
+        previous_state=previous_state,
+        new_state=new_state,
+        chatwoot_call_ok=chatwoot_ok,
+    )
 
 
 @router.get("", response_class=HTMLResponse)
@@ -113,6 +167,7 @@ async def move_stage(contact_id: int, body: MoveStageRequest, request: Request):
             new_state={"stage_to": body.stage},
             chatwoot_call_ok=True,
         )
+        _invalidate_board_cache()
         return {"ok": True, "stage": body.stage}
     except HTTPException:
         raise
@@ -133,7 +188,9 @@ async def move_stage(contact_id: int, body: MoveStageRequest, request: Request):
 
 
 @router.post("/tasks")
-async def create_task(body: CreateTaskRequest, request: Request):
+async def create_task(
+    body: CreateTaskRequest, request: Request, background_tasks: BackgroundTasks
+):
     actor_id, actor_name, actor_email = await _get_actor(request)
 
     existing = await get_active_task(body.contact_id)
@@ -154,30 +211,17 @@ async def create_task(body: CreateTaskRequest, request: Request):
         actor_agent_id=actor_id,
     )
 
-    chatwoot_ok = True
-    try:
-        fecha_iso = body.fecha_vencimiento.isoformat() + "T23:59:59.999Z"
-        attrs = {
-            TASK_MSG_ATTR_KEY: body.mensaje,
-            TASK_DATE_ATTR_KEY: fecha_iso,
-        }
-        await chatwoot_client.safe_update_contact_custom_attributes(
-            body.contact_id,
-            attrs,
-            skip_read=True,
-        )
-    except Exception as exc:
-        logger.error(
-            "Chatwoot sync failed for task on contact %s: %s",
-            body.contact_id,
-            exc,
-        )
-        chatwoot_ok = False
-
     audit_action = "task_overwritten" if existing else "create"
-    await write_audit_log(
+    fecha_iso = body.fecha_vencimiento.isoformat() + "T23:59:59.999Z"
+    attrs = {
+        TASK_MSG_ATTR_KEY: body.mensaje,
+        TASK_DATE_ATTR_KEY: fecha_iso,
+    }
+    background_tasks.add_task(
+        _bg_sync_task_and_audit,
         contact_id=body.contact_id,
-        actor_agent_id=actor_id,
+        attrs=attrs,
+        actor_id=actor_id,
         actor_name=actor_name,
         action=audit_action,
         previous_state=previous,
@@ -185,19 +229,21 @@ async def create_task(body: CreateTaskRequest, request: Request):
             "mensaje": body.mensaje,
             "fecha_vencimiento": body.fecha_vencimiento.isoformat(),
         },
-        chatwoot_call_ok=chatwoot_ok,
     )
 
+    _invalidate_board_cache()
     return {
         "ok": True,
         "action": action_label,
         "task_id": result["id"],
-        "chatwoot_synced": chatwoot_ok,
     }
 
 
 @router.patch("/tasks/{task_id}")
-async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Request):
+async def update_task_endpoint(
+    task_id: int, body: EditTaskRequest, request: Request,
+    background_tasks: BackgroundTasks,
+):
     actor_id, actor_name, _ = await _get_actor(request)
 
     result = await edit_task(
@@ -209,46 +255,38 @@ async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Req
         raise HTTPException(status_code=404, detail="Task not found")
 
     previous = result.get("previous", {})
-    chatwoot_ok = True
-    try:
-        cid = previous.get("contact_id")
-        if cid:
-            fecha_iso = body.fecha_vencimiento.isoformat() + "T23:59:59.999Z"
-            attrs = {
-                TASK_MSG_ATTR_KEY: body.mensaje,
-                TASK_DATE_ATTR_KEY: fecha_iso,
-            }
-            await chatwoot_client.safe_update_contact_custom_attributes(
-                cid,
-                attrs,
-                skip_read=True,
-            )
-    except Exception as exc:
-        logger.error("Chatwoot sync failed for task %s: %s", task_id, exc)
-        chatwoot_ok = False
+    cid = previous.get("contact_id")
+    if cid:
+        fecha_iso = body.fecha_vencimiento.isoformat() + "T23:59:59.999Z"
+        attrs = {
+            TASK_MSG_ATTR_KEY: body.mensaje,
+            TASK_DATE_ATTR_KEY: fecha_iso,
+        }
+        background_tasks.add_task(
+            _bg_sync_task_and_audit,
+            contact_id=cid,
+            attrs=attrs,
+            actor_id=actor_id,
+            actor_name=actor_name,
+            action="edit",
+            previous_state={
+                "mensaje": previous.get("mensaje"),
+                "fecha_vencimiento": str(previous.get("fecha_vencimiento", "")),
+            },
+            new_state={
+                "mensaje": body.mensaje,
+                "fecha_vencimiento": body.fecha_vencimiento.isoformat(),
+            },
+        )
 
-    await write_audit_log(
-        contact_id=previous.get("contact_id"),
-        conversation_id=previous.get("conversation_id"),
-        actor_agent_id=actor_id,
-        actor_name=actor_name,
-        action="edit",
-        previous_state={
-            "mensaje": previous.get("mensaje"),
-            "fecha_vencimiento": str(previous.get("fecha_vencimiento", "")),
-        },
-        new_state={
-            "mensaje": body.mensaje,
-            "fecha_vencimiento": body.fecha_vencimiento.isoformat(),
-        },
-        chatwoot_call_ok=chatwoot_ok,
-    )
-
-    return {"ok": True, "task_id": task_id, "chatwoot_synced": chatwoot_ok}
+    _invalidate_board_cache()
+    return {"ok": True, "task_id": task_id}
 
 
 @router.patch("/tasks/{task_id}/close")
-async def close_task_endpoint(task_id: int, request: Request):
+async def close_task_endpoint(
+    task_id: int, request: Request, background_tasks: BackgroundTasks
+):
     actor_id, actor_name, _ = await _get_actor(request)
 
     result = await close_task(task_id, cerrado_por=actor_id)
@@ -258,31 +296,21 @@ async def close_task_endpoint(task_id: int, request: Request):
         raise HTTPException(status_code=409, detail="Task is already closed")
 
     previous = result.get("previous", {})
-    chatwoot_ok = True
-    try:
-        cid = previous.get("contact_id")
-        if cid:
-            await chatwoot_client.safe_update_contact_custom_attributes(
-                cid,
-                {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""},
-                skip_read=True,
-            )
-    except Exception as exc:
-        logger.error("Chatwoot sync failed closing task %s: %s", task_id, exc)
-        chatwoot_ok = False
+    cid = previous.get("contact_id")
+    if cid:
+        background_tasks.add_task(
+            _bg_sync_task_and_audit,
+            contact_id=cid,
+            attrs={TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""},
+            actor_id=actor_id,
+            actor_name=actor_name,
+            action="close",
+            previous_state={"estado": previous.get("estado")},
+            new_state={"estado": "tarea_cerrada"},
+        )
 
-    await write_audit_log(
-        contact_id=previous.get("contact_id"),
-        conversation_id=previous.get("conversation_id"),
-        actor_agent_id=actor_id,
-        actor_name=actor_name,
-        action="close",
-        previous_state={"estado": previous.get("estado")},
-        new_state={"estado": "tarea_cerrada"},
-        chatwoot_call_ok=chatwoot_ok,
-    )
-
-    return {"ok": True, "task_id": task_id, "chatwoot_synced": chatwoot_ok}
+    _invalidate_board_cache()
+    return {"ok": True, "task_id": task_id}
 
 
 @router.get("/tasks")
@@ -352,6 +380,10 @@ async def kanban_config():
 
 @router.get("/board")
 async def kanban_board(stage: str | None = None):
+    cached = _get_cached_board(stage)
+    if cached is not None:
+        return cached
+
     try:
         definitions = await chatwoot_client.get_custom_attribute_definitions()
     except Exception as exc:
@@ -362,11 +394,13 @@ async def kanban_board(stage: str | None = None):
 
     pipeline_attr = _find_pipeline_attribute(definitions)
     if not pipeline_attr:
-        return {
+        result = {
             "columns": [],
             "chatwoot_url": chatwoot_client.base_url,
             "chatwoot_account_id": chatwoot_client.account_id,
         }
+        _set_cached_board(stage, result)
+        return result
 
     stages = pipeline_attr.get("attribute_values", [])
     target_stages = [stage] if stage else stages
@@ -391,8 +425,9 @@ async def kanban_board(stage: str | None = None):
                 all_cards.extend(cards)
                 meta = _extract_meta(resp)
                 count = meta.get("count", 0)
-                page_size = 15
-                total_pages = max(1, math.ceil(count / page_size)) if count else 1
+                total_pages = (
+                    max(1, math.ceil(count / _PAGE_SIZE)) if count else 1
+                )
                 if page >= total_pages:
                     break
                 page += 1
@@ -430,11 +465,14 @@ async def kanban_board(stage: str | None = None):
     stage_tasks = [_load_stage(s) for s in target_stages]
     results = await asyncio.gather(*stage_tasks)
 
-    return {
+    result = {
         "columns": list(results),
         "chatwoot_url": chatwoot_client.base_url,
         "chatwoot_account_id": chatwoot_client.account_id,
+        "generated_at": time_module.time(),
     }
+    _set_cached_board(stage, result)
+    return result
 
 
 @router.get("/debug-status")
