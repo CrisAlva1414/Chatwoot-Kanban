@@ -1,12 +1,12 @@
-# ADR-006 — Kanban de pipeline sobre custom_attributes de conversación
+# ADR-006 — Kanban de pipeline sobre custom_attributes de conversación [SUPLANTADO]
 
 | Campo | Valor |
 |---|---|
-| **Estado** | Parcialmente suplantado por ADR-016 |
+| **Estado** | Suplantado por ADR-016 |
 | **Fecha** | 2026-07-09 |
 | **Proyecto** | kanban.ruki-bot.com |
 | **Decidido por** | Sesión de factibilidad técnica inicial |
-| **Suplantado por** | ADR-016 (modelo contact-based desde 2026-07-26) |
+| **Suplantado por** | ADR-016 (modelo contact-based, migrado 2026-07-26) |
 
 ---
 
