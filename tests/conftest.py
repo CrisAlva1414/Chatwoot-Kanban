@@ -16,53 +16,43 @@ from app.main import app
 
 MOCK_ATTRIBUTE_DEFINITIONS = [
     {
-        "id": 1,
+        "id": 6,
         "attribute_display_name": "Pipeline 01 Etapas",
         "attribute_display_type": "list",
         "attribute_description": None,
         "attribute_key": "pipeline_01_etapas",
         "attribute_values": ["Potencial", "En evaluación", "Cerrado"],
-        "attribute_model": "conversation_attribute",
+        "attribute_model": "contact_attribute",
         "default_value": None,
         "created_at": "2026-01-01T00:00:00Z",
         "updated_at": "2026-01-01T00:00:00Z",
     }
 ]
 
-MOCK_FILTER_RESPONSE = {
-    "payload": {
-        "conversations": [
-            {
-                "id": 101,
-                "meta": {
-                    "sender": {
-                        "name": "Juan Pérez",
-                        "thumbnail": "",
-                    }
-                },
-                "messages": [
-                    {"content": "Hola, necesito ayuda", "text": "Hola, necesito ayuda"}
-                ],
-                "updated_at": "2026-07-13T10:00:00Z",
-                "custom_attributes": {
-                    "kanban_view_fecha_termino": "2026-07-20T23:59:59.999Z"
-                },
+MOCK_CONTACTS_FILTER_RESPONSE = {
+    "meta": {"count": 2, "current_page": 1},
+    "payload": [
+        {
+            "id": 101,
+            "name": "Juan Pérez",
+            "email": "juan@example.com",
+            "phone_number": "+56912345678",
+            "thumbnail": "",
+            "custom_attributes": {
+                "kanban_view_fecha_termino": "2026-07-20T23:59:59.999Z"
             },
-            {
-                "id": 102,
-                "meta": {
-                    "sender": {
-                        "name": "María López",
-                        "thumbnail": "",
-                    }
-                },
-                "messages": [{"content": "Consulta sobre precio", "text": ""}],
-                "updated_at": "2026-07-12T15:30:00Z",
-                "custom_attributes": {},
-            },
-        ],
-        "meta": {"count": 2},
-    }
+            "last_activity_at": 1784000000,
+        },
+        {
+            "id": 102,
+            "name": "María López",
+            "email": "maria@example.com",
+            "phone_number": "+56987654321",
+            "thumbnail": "",
+            "custom_attributes": {},
+            "last_activity_at": 1783900000,
+        },
+    ],
 }
 
 
@@ -92,20 +82,22 @@ def mock_chatwoot_ok():
     with (
         patch("app.routers.kanban.chatwoot_client") as mock_client,
         patch(
-            "app.routers.kanban.get_tasks_for_conversations",
+            "app.routers.kanban.get_tasks_for_contacts",
             new_callable=AsyncMock,
             return_value={},
         ),
         patch(
-            "app.routers.kanban.sync_task_from_chatwoot",
+            "app.routers.kanban.batch_sync_tasks_from_chatwoot",
             new_callable=AsyncMock,
-            return_value=None,
+            return_value={"updated": 0, "created": 0, "closed": 0},
         ),
     ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
             return_value=MOCK_ATTRIBUTE_DEFINITIONS
         )
-        mock_client.filter_conversations = AsyncMock(return_value=MOCK_FILTER_RESPONSE)
+        mock_client.filter_contacts = AsyncMock(
+            return_value=MOCK_CONTACTS_FILTER_RESPONSE
+        )
         mock_client.base_url = "https://test.chatwoot.com"
         yield mock_client
 
@@ -115,21 +107,21 @@ def mock_chatwoot_empty():
     with (
         patch("app.routers.kanban.chatwoot_client") as mock_client,
         patch(
-            "app.routers.kanban.get_tasks_for_conversations",
+            "app.routers.kanban.get_tasks_for_contacts",
             new_callable=AsyncMock,
             return_value={},
         ),
         patch(
-            "app.routers.kanban.sync_task_from_chatwoot",
+            "app.routers.kanban.batch_sync_tasks_from_chatwoot",
             new_callable=AsyncMock,
-            return_value=None,
+            return_value={"updated": 0, "created": 0, "closed": 0},
         ),
     ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
             return_value=MOCK_ATTRIBUTE_DEFINITIONS
         )
-        mock_client.filter_conversations = AsyncMock(
-            return_value={"payload": {"conversations": [], "meta": {"count": 0}}}
+        mock_client.filter_contacts = AsyncMock(
+            return_value={"payload": [], "meta": {"count": 0, "current_page": 1}}
         )
         mock_client.base_url = "https://test.chatwoot.com"
         yield mock_client
@@ -141,7 +133,7 @@ def mock_chatwoot_error():
         mock_client.get_custom_attribute_definitions = AsyncMock(
             side_effect=Exception("Connection refused")
         )
-        mock_client.filter_conversations = AsyncMock(
+        mock_client.filter_contacts = AsyncMock(
             side_effect=Exception("Connection refused")
         )
         mock_client.base_url = "https://test.chatwoot.com"
@@ -153,37 +145,35 @@ def mock_chatwoot_flat_response():
     with (
         patch("app.routers.kanban.chatwoot_client") as mock_client,
         patch(
-            "app.routers.kanban.get_tasks_for_conversations",
+            "app.routers.kanban.get_tasks_for_contacts",
             new_callable=AsyncMock,
             return_value={},
         ),
         patch(
-            "app.routers.kanban.sync_task_from_chatwoot",
+            "app.routers.kanban.batch_sync_tasks_from_chatwoot",
             new_callable=AsyncMock,
-            return_value=None,
+            return_value={"updated": 0, "created": 0, "closed": 0},
         ),
     ):
         mock_client.get_custom_attribute_definitions = AsyncMock(
             return_value=MOCK_ATTRIBUTE_DEFINITIONS
         )
-        mock_client.filter_conversations = AsyncMock(
+        mock_client.filter_contacts = AsyncMock(
             return_value={
-                "conversations": [
+                "payload": [
                     {
                         "id": 201,
-                        "meta": {
-                            "sender": {
-                                "name": "Pedro Soto",
-                                "thumbnail": "",
-                            }
-                        },
-                        "messages": [],
-                        "updated_at": "2026-07-10T08:00:00Z",
+                        "name": "Pedro Soto",
+                        "email": "pedro@example.com",
+                        "phone_number": "",
+                        "thumbnail": "",
                         "custom_attributes": {
                             "kanban_view_fecha_termino": "2026-07-25T23:59:59.999Z"
                         },
+                        "last_activity_at": 1783800000,
                     }
-                ]
+                ],
+                "meta": {"count": 1, "current_page": 1},
             }
         )
         mock_client.base_url = "https://test.chatwoot.com"

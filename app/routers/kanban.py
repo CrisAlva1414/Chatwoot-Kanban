@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import math
 from datetime import date
@@ -9,6 +10,7 @@ from pydantic import BaseModel
 
 from app.chatwoot_client import chatwoot_client
 from app.database import (
+    batch_sync_tasks_from_chatwoot,
     close_task,
     cron_tick,
     edit_task,
@@ -16,8 +18,7 @@ from app.database import (
     get_agent_stats,
     get_audit_history,
     get_or_create_agent,
-    get_tasks_for_conversations,
-    sync_task_from_chatwoot,
+    get_tasks_for_contacts,
     upsert_task,
     write_audit_log,
 )
@@ -39,7 +40,7 @@ class MoveStageRequest(BaseModel):
 
 
 class CreateTaskRequest(BaseModel):
-    conversation_id: int
+    contact_id: int
     mensaje: str
     fecha_vencimiento: date
 
@@ -76,8 +77,8 @@ async def dashboard_page():
     return HTMLResponse(html.read_text())
 
 
-@router.patch("/board/{conversation_id}/stage")
-async def move_stage(conversation_id: int, body: MoveStageRequest, request: Request):
+@router.patch("/board/{contact_id}/stage")
+async def move_stage(contact_id: int, body: MoveStageRequest, request: Request):
     actor_id, actor_name, actor_email = await _get_actor(request)
 
     definitions = await chatwoot_client.get_custom_attribute_definitions()
@@ -91,20 +92,20 @@ async def move_stage(conversation_id: int, body: MoveStageRequest, request: Requ
 
     try:
         await write_audit_log(
-            conversation_id=conversation_id,
-            contact_id=None,
+            contact_id=contact_id,
             actor_agent_id=actor_id,
             actor_name=actor_name,
             action="stage_change",
             previous_state={"stage_from": "unknown"},
             new_state={"stage_to": body.stage},
         )
-        await chatwoot_client.safe_update_custom_attributes(
-            conversation_id, {PIPELINE_ATTR_KEY: body.stage}
+        await chatwoot_client.safe_update_contact_custom_attributes(
+            contact_id,
+            {PIPELINE_ATTR_KEY: body.stage},
+            skip_read=True,
         )
         await write_audit_log(
-            conversation_id=conversation_id,
-            contact_id=None,
+            contact_id=contact_id,
             actor_agent_id=actor_id,
             actor_name=actor_name,
             action="stage_change",
@@ -116,10 +117,9 @@ async def move_stage(conversation_id: int, body: MoveStageRequest, request: Requ
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("Failed to move conversation %s: %s", conversation_id, exc)
+        logger.error("Failed to move contact %s: %s", contact_id, exc)
         await write_audit_log(
-            conversation_id=conversation_id,
-            contact_id=None,
+            contact_id=contact_id,
             actor_agent_id=actor_id,
             actor_name=actor_name,
             action="stage_change",
@@ -136,7 +136,7 @@ async def move_stage(conversation_id: int, body: MoveStageRequest, request: Requ
 async def create_task(body: CreateTaskRequest, request: Request):
     actor_id, actor_name, actor_email = await _get_actor(request)
 
-    existing = await get_active_task(body.conversation_id)
+    existing = await get_active_task(body.contact_id)
     action_label = "updated" if existing else "created"
     previous = None
     if existing:
@@ -147,7 +147,8 @@ async def create_task(body: CreateTaskRequest, request: Request):
         }
 
     result = await upsert_task(
-        conversation_id=body.conversation_id,
+        contact_id=body.contact_id,
+        conversation_id=None,
         mensaje=body.mensaje,
         fecha_vencimiento=body.fecha_vencimiento,
         actor_agent_id=actor_id,
@@ -160,19 +161,22 @@ async def create_task(body: CreateTaskRequest, request: Request):
             TASK_MSG_ATTR_KEY: body.mensaje,
             TASK_DATE_ATTR_KEY: fecha_iso,
         }
-        await chatwoot_client.safe_update_custom_attributes(body.conversation_id, attrs)
+        await chatwoot_client.safe_update_contact_custom_attributes(
+            body.contact_id,
+            attrs,
+            skip_read=True,
+        )
     except Exception as exc:
         logger.error(
-            "Chatwoot sync failed for task on conv %s: %s",
-            body.conversation_id,
+            "Chatwoot sync failed for task on contact %s: %s",
+            body.contact_id,
             exc,
         )
         chatwoot_ok = False
 
     audit_action = "task_overwritten" if existing else "create"
     await write_audit_log(
-        conversation_id=body.conversation_id,
-        contact_id=None,
+        contact_id=body.contact_id,
         actor_agent_id=actor_id,
         actor_name=actor_name,
         action=audit_action,
@@ -207,21 +211,25 @@ async def update_task_endpoint(task_id: int, body: EditTaskRequest, request: Req
     previous = result.get("previous", {})
     chatwoot_ok = True
     try:
-        conv_id = previous.get("conversation_id")
-        if conv_id:
+        cid = previous.get("contact_id")
+        if cid:
             fecha_iso = body.fecha_vencimiento.isoformat() + "T23:59:59.999Z"
             attrs = {
                 TASK_MSG_ATTR_KEY: body.mensaje,
                 TASK_DATE_ATTR_KEY: fecha_iso,
             }
-            await chatwoot_client.safe_update_custom_attributes(conv_id, attrs)
+            await chatwoot_client.safe_update_contact_custom_attributes(
+                cid,
+                attrs,
+                skip_read=True,
+            )
     except Exception as exc:
         logger.error("Chatwoot sync failed for task %s: %s", task_id, exc)
         chatwoot_ok = False
 
     await write_audit_log(
-        conversation_id=previous.get("conversation_id", 0),
-        contact_id=None,
+        contact_id=previous.get("contact_id"),
+        conversation_id=previous.get("conversation_id"),
         actor_agent_id=actor_id,
         actor_name=actor_name,
         action="edit",
@@ -252,18 +260,20 @@ async def close_task_endpoint(task_id: int, request: Request):
     previous = result.get("previous", {})
     chatwoot_ok = True
     try:
-        conv_id = previous.get("conversation_id")
-        if conv_id:
-            await chatwoot_client.safe_update_custom_attributes(
-                conv_id, {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""}
+        cid = previous.get("contact_id")
+        if cid:
+            await chatwoot_client.safe_update_contact_custom_attributes(
+                cid,
+                {TASK_MSG_ATTR_KEY: "", TASK_DATE_ATTR_KEY: ""},
+                skip_read=True,
             )
     except Exception as exc:
         logger.error("Chatwoot sync failed closing task %s: %s", task_id, exc)
         chatwoot_ok = False
 
     await write_audit_log(
-        conversation_id=previous.get("conversation_id", 0),
-        contact_id=None,
+        contact_id=previous.get("contact_id"),
+        conversation_id=previous.get("conversation_id"),
         actor_agent_id=actor_id,
         actor_name=actor_name,
         action="close",
@@ -276,9 +286,9 @@ async def close_task_endpoint(task_id: int, request: Request):
 
 
 @router.get("/tasks")
-async def get_tasks(conversation_id: int | None = None):
-    if conversation_id:
-        task = await get_active_task(conversation_id)
+async def get_tasks(contact_id: int | None = None):
+    if contact_id:
+        task = await get_active_task(contact_id)
         return {"task": task}
     return {"tasks": []}
 
@@ -289,7 +299,6 @@ async def kanban_cron_tick(request: Request):
     try:
         result = await cron_tick()
         await write_audit_log(
-            conversation_id=0,
             contact_id=None,
             actor_agent_id=actor_id,
             actor_name=actor_name,
@@ -362,8 +371,7 @@ async def kanban_board(stage: str | None = None):
     stages = pipeline_attr.get("attribute_values", [])
     target_stages = [stage] if stage else stages
 
-    columns = []
-    for s in target_stages:
+    async def _load_stage(s: str) -> dict:
         payload = {
             "payload": [
                 {
@@ -378,26 +386,29 @@ async def kanban_board(stage: str | None = None):
         page = 1
         try:
             while True:
-                resp = await chatwoot_client.filter_conversations(payload, page=page)
-                cards = _parse_conversations(resp)
+                resp = await chatwoot_client.filter_contacts(payload, page=page)
+                cards = _parse_contacts(resp)
                 all_cards.extend(cards)
                 meta = _extract_meta(resp)
-                all_count = meta.get("all_count", 0)
-                page_size = 25
-                total_pages = (
-                    max(1, math.ceil(all_count / page_size)) if all_count else 1
-                )
+                count = meta.get("count", 0)
+                page_size = 15
+                total_pages = max(1, math.ceil(count / page_size)) if count else 1
                 if page >= total_pages:
                     break
                 page += 1
 
-            for card in all_cards:
-                await sync_task_from_chatwoot(
-                    card["id"], card.get("custom_attributes") or {}
-                )
+            contacts_data = [
+                {
+                    "contact_id": c["id"],
+                    "custom_attributes": c.get("custom_attributes") or {},
+                }
+                for c in all_cards
+                if c.get("id")
+            ]
+            await batch_sync_tasks_from_chatwoot(contacts_data)
 
-            conv_ids = [c["id"] for c in all_cards if c.get("id")]
-            tasks_map = await get_tasks_for_conversations(conv_ids)
+            contact_ids = [c["id"] for c in all_cards if c.get("id")]
+            tasks_map = await get_tasks_for_contacts(contact_ids)
             for card in all_cards:
                 task = tasks_map.get(card["id"])
                 if task:
@@ -408,16 +419,19 @@ async def kanban_board(stage: str | None = None):
                         "fecha_vencimiento": str(task["fecha_vencimiento"]),
                         "creado_por": task["creado_por_nombre"],
                     }
-            columns.append({"stage": s, "conversations": all_cards})
+            return {"stage": s, "contacts": all_cards}
         except Exception as exc:
-            logger.error("Failed to filter conversations for stage '%s': %s", s, exc)
+            logger.error("Failed to filter contacts for stage '%s': %s", s, exc)
             raise HTTPException(
                 status_code=502,
                 detail=f"Chatwoot API error filtering stage '{s}': {exc}",
             ) from exc
 
+    stage_tasks = [_load_stage(s) for s in target_stages]
+    results = await asyncio.gather(*stage_tasks)
+
     return {
-        "columns": columns,
+        "columns": list(results),
         "chatwoot_url": chatwoot_client.base_url,
         "chatwoot_account_id": chatwoot_client.account_id,
     }
@@ -432,11 +446,25 @@ async def kanban_debug_status():
         status["checks"]["chatwoot_connection"] = "ok"
         status["checks"]["attribute_definitions_count"] = len(definitions)
 
+        contact_attrs = [
+            d for d in definitions if d.get("attribute_model") == "contact_attribute"
+        ]
+        conversation_attrs = [
+            d
+            for d in definitions
+            if d.get("attribute_model") == "conversation_attribute"
+        ]
+        status["checks"]["contact_attributes_count"] = len(contact_attrs)
+        status["checks"]["conversation_attributes_count"] = len(conversation_attrs)
+
         pipeline_attr = _find_pipeline_attribute(definitions)
         if pipeline_attr:
             status["checks"]["pipeline_attribute"] = "found"
             status["checks"]["pipeline_attribute_key"] = pipeline_attr.get(
                 "attribute_key"
+            )
+            status["checks"]["pipeline_attribute_model"] = pipeline_attr.get(
+                "attribute_model"
             )
             status["checks"]["pipeline_stages"] = pipeline_attr.get(
                 "attribute_values", []
@@ -466,14 +494,14 @@ async def kanban_debug_raw(stage: str = "Potencial"):
         ]
     }
     try:
-        resp = await chatwoot_client.filter_conversations(payload)
+        resp = await chatwoot_client.filter_contacts(payload)
         return {
             "stage": stage,
             "raw": resp,
             "top_level_keys": list(resp.keys())
             if isinstance(resp, dict)
             else type(resp).__name__,
-            "parsed_conversations": _parse_conversations(resp),
+            "parsed_contacts": _parse_contacts(resp),
         }
     except Exception as exc:
         logger.error("Debug raw failed for stage '%s': %s", stage, exc)
@@ -481,6 +509,12 @@ async def kanban_debug_raw(stage: str = "Potencial"):
 
 
 def _find_pipeline_attribute(definitions: list) -> dict | None:
+    for d in definitions:
+        if (
+            d.get("attribute_key") == PIPELINE_ATTR_KEY
+            and d.get("attribute_model") == "contact_attribute"
+        ):
+            return d
     for d in definitions:
         if d.get("attribute_key") == PIPELINE_ATTR_KEY:
             return d
@@ -500,37 +534,34 @@ def _extract_meta(resp: dict) -> dict:
     return {}
 
 
-def _parse_conversations(resp: dict | list) -> list:
-    raw = _extract_conversation_list(resp)
-    return [_normalize_conversation(c) for c in raw]
+def _parse_contacts(resp: dict | list) -> list:
+    raw = _extract_contact_list(resp)
+    return [_normalize_contact(c) for c in raw]
 
 
-def _extract_conversation_list(resp: dict | list) -> list:
+def _extract_contact_list(resp: dict | list) -> list:
     if isinstance(resp, list):
         return resp
     if not isinstance(resp, dict):
         return []
 
-    for key in ("conversations", "data", "payload"):
+    for key in ("contacts", "data", "payload"):
         val = resp.get(key)
         if isinstance(val, list):
             return val
         if isinstance(val, dict):
-            return _extract_conversation_list(val)
+            return _extract_contact_list(val)
 
     return []
 
 
-def _normalize_conversation(conv: dict) -> dict:
-    sender = (conv.get("meta") or {}).get("sender") or {}
-    messages = conv.get("messages") or []
-    last_msg = messages[-1] if messages else {}
-
+def _normalize_contact(contact: dict) -> dict:
     return {
-        "id": conv.get("id"),
-        "contact_name": sender.get("name") or "",
-        "thumbnail": sender.get("thumbnail") or "",
-        "last_message": last_msg.get("content") or "",
-        "updated_at": conv.get("updated_at") or "",
-        "custom_attributes": conv.get("custom_attributes") or {},
+        "id": contact.get("id"),
+        "contact_name": contact.get("name") or "",
+        "email": contact.get("email") or "",
+        "phone_number": contact.get("phone_number") or "",
+        "thumbnail": contact.get("thumbnail") or "",
+        "custom_attributes": contact.get("custom_attributes") or {},
+        "last_activity_at": contact.get("last_activity_at") or "",
     }

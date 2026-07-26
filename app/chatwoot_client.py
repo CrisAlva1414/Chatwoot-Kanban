@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 
 import httpx
 
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
 _RETRY_DELAYS = [0.5, 1.0, 2.0]
+_ATTR_CACHE_TTL = 300  # 5 minutos
 
 
 class ChatwootClient:
@@ -22,6 +24,7 @@ class ChatwootClient:
             "Content-Type": "application/json",
         }
         self._client: httpx.AsyncClient | None = None
+        self._attr_cache: tuple[float, list] | None = None
 
     async def init(self) -> None:
         if self._client is None or self._client.is_closed:
@@ -92,10 +95,60 @@ class ChatwootClient:
         resp = await self._request("POST", url, json=body)
         return resp.json()
 
-    async def get_custom_attribute_definitions(self) -> dict:
-        url = f"{self._account_path}/custom_attribute_definitions"
+    async def filter_contacts(self, payload: dict, page: int = 1) -> dict:
+        url = f"{self._account_path}/contacts/filter"
+        body = {**payload, "page": page}
+        resp = await self._request("POST", url, json=body)
+        return resp.json()
+
+    async def get_contact(self, contact_id: int) -> dict:
+        url = f"{self._account_path}/contacts/{contact_id}"
         resp = await self._request("GET", url)
         return resp.json()
+
+    async def get_contact_conversations(self, contact_id: int) -> list:
+        url = f"{self._account_path}/contacts/{contact_id}/conversations"
+        resp = await self._request("GET", url)
+        data = resp.json()
+        return data.get("payload", data) if isinstance(data, dict) else data
+
+    async def update_contact_custom_attributes(
+        self, contact_id: int, attributes: dict
+    ) -> dict:
+        url = f"{self._account_path}/contacts/{contact_id}"
+        resp = await self._request("PATCH", url, json={"custom_attributes": attributes})
+        return resp.json()
+
+    async def safe_update_contact_custom_attributes(
+        self, contact_id: int, attributes: dict, *, skip_read: bool = False
+    ) -> dict:
+        if skip_read:
+            return await self.update_contact_custom_attributes(contact_id, attributes)
+
+        try:
+            contact = await self.get_contact(contact_id)
+            contact_data = contact.get("payload", contact)
+            existing = contact_data.get("custom_attributes") or {}
+        except Exception:
+            logger.warning(
+                "Could not read existing attributes for contact %s, "
+                "sending partial update",
+                contact_id,
+            )
+            return await self.update_contact_custom_attributes(contact_id, attributes)
+
+        merged = {**existing, **attributes}
+        return await self.update_contact_custom_attributes(contact_id, merged)
+
+    async def get_custom_attribute_definitions(self) -> list:
+        now = time.time()
+        if self._attr_cache and (now - self._attr_cache[0]) < _ATTR_CACHE_TTL:
+            return self._attr_cache[1]
+        url = f"{self._account_path}/custom_attribute_definitions"
+        resp = await self._request("GET", url)
+        definitions = resp.json()
+        self._attr_cache = (now, definitions)
+        return definitions
 
     async def update_custom_attributes(
         self, conversation_id: int, attributes: dict
@@ -110,8 +163,11 @@ class ChatwootClient:
         return resp.json()
 
     async def safe_update_custom_attributes(
-        self, conversation_id: int, attributes: dict
+        self, conversation_id: int, attributes: dict, *, skip_read: bool = False
     ) -> dict:
+        if skip_read:
+            return await self.update_custom_attributes(conversation_id, attributes)
+
         try:
             conv = await self.get_conversation(conversation_id)
             existing = conv.get("custom_attributes") or {}

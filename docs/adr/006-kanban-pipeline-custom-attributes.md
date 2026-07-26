@@ -2,10 +2,11 @@
 
 | Campo | Valor |
 |---|---|
-| **Estado** | Aceptado |
+| **Estado** | Parcialmente suplantado por ADR-016 |
 | **Fecha** | 2026-07-09 |
 | **Proyecto** | kanban.ruki-bot.com |
 | **Decidido por** | Sesión de factibilidad técnica inicial |
+| **Suplantado por** | ADR-016 (modelo contact-based desde 2026-07-26) |
 
 ---
 

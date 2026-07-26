@@ -552,6 +552,12 @@ let allColumns = [];
 let activeFilter = '';
 let currentModalCardId = null;
 let pollingTimer = null;
+let isTabVisible = true;
+
+document.addEventListener('visibilitychange', () => {
+  isTabVisible = !document.hidden;
+  if (isTabVisible) refreshBoard();
+});
 
 const $ = (s, p) => (p || document).querySelector(s);
 const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
@@ -642,12 +648,12 @@ async function loadBoard(stage) {
   return data;
 }
 
-function openConversation(id) {
+function openContact(id) {
   if (!chatwootUrl || !id) return;
   const base = chatwootUrl.replace(/\/+$/, '');
   const url = chatwootAccountId
-    ? `${base}/app/accounts/${chatwootAccountId}/conversations/${id}`
-    : `https://chatwoot.ruki-bot.com/app/accounts/1/conversations/${id}`;
+    ? `${base}/app/accounts/${chatwootAccountId}/contacts/${id}/conversations`
+    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${id}/conversations`;
   window.open(url, '_blank');
 }
 
@@ -672,8 +678,8 @@ function openTaskModal(cardData) {
 
   const base = chatwootUrl.replace(/\/+$/, '');
   const chatwootLink = chatwootAccountId
-    ? `${base}/app/accounts/${chatwootAccountId}/conversations/${cardData.id}`
-    : `https://chatwoot.ruki-bot.com/app/accounts/1/conversations/${cardData.id}`;
+    ? `${base}/app/accounts/${chatwootAccountId}/contacts/${cardData.id}/conversations`
+    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${cardData.id}/conversations`;
 
   let taskSection = '';
   if (task) {
@@ -800,7 +806,7 @@ function closeTaskModal() {
   startPolling();
 }
 
-async function createTask(conversationId) {
+async function createTask(contactId) {
   const msg = document.getElementById('task-msg')?.value?.trim();
   const date = document.getElementById('task-date')?.value;
   if (!msg) { showToast('Escribe un mensaje para la tarea', 'error'); return; }
@@ -813,7 +819,7 @@ async function createTask(conversationId) {
     const res = await fetch(API_TASKS, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversation_id: conversationId, mensaje: msg, fecha_vencimiento: date }),
+      body: JSON.stringify({ contact_id: contactId, mensaje: msg, fecha_vencimiento: date }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
@@ -942,7 +948,7 @@ async function refreshBoard() {
 function renderColumns(columns, board) {
   board.innerHTML = '';
   columns.forEach(col => {
-    let cards = col.conversations || [];
+    let cards = col.contacts || [];
     if (activeFilter) {
       cards = cards.filter(c => {
         const estado = computeTaskEstado(c.task);
@@ -976,7 +982,7 @@ function createCard(card) {
   const el = document.createElement('div');
   el.className = 'card';
   el.draggable = true;
-  el.dataset.conversationId = card.id;
+  el.dataset.contactId = card.id;
   el.dataset.customAttributes = JSON.stringify(card.custom_attributes || {});
   if (card.task) el.dataset.task = JSON.stringify(card.task);
 
@@ -985,9 +991,8 @@ function createCard(card) {
       <div class="card-avatar">${card.thumbnail ? `<img src="${card.thumbnail}" alt="">` : initials(card.contact_name)}</div>
       <div class="card-name">${card.contact_name}</div>
     </div>
-    ${card.last_message ? `<div class="card-message">${escapeHtml(card.last_message)}</div>` : ''}
     ${card.task ? renderTaskBadge(card.task) : ''}
-    <div class="card-time">${timeAgo(card.updated_at)}</div>
+    <div class="card-time">${timeAgo(card.last_activity_at)}</div>
   `;
 
   el.addEventListener('dragstart', (e) => {
@@ -1025,7 +1030,7 @@ function setupDropZone(body, targetStage) {
     const data = JSON.parse(e.dataTransfer.getData('text/plain'));
     if (data.stage === targetStage) return;
 
-    const draggable = document.querySelector(`.card[data-conversation-id="${data.id}"]`);
+    const draggable = document.querySelector(`.card[data-contact-id="${data.id}"]`);
     if (!draggable) return;
 
     const originalStage = draggable.closest('.column').dataset.stage;
@@ -1047,8 +1052,7 @@ function setupDropZone(body, targetStage) {
           id: data.id,
           contact_name: draggable.querySelector('.card-name')?.textContent || '',
           thumbnail: draggable.querySelector('img')?.src || '',
-          last_message: draggable.querySelector('.card-message')?.textContent || '',
-          updated_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
           custom_attributes: JSON.parse(draggable.dataset.customAttributes || '{}'),
           task: draggable.dataset.task ? JSON.parse(draggable.dataset.task) : null,
         };
@@ -1099,7 +1103,7 @@ function showToast(message, type = 'info') {
 function startPolling() {
   stopPolling();
   pollingTimer = setInterval(async () => {
-    if (currentModalCardId) return;
+    if (!isTabVisible || currentModalCardId) return;
     try {
       const data = await loadBoard();
       renderBoard(data);
