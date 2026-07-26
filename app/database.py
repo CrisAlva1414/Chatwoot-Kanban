@@ -128,9 +128,10 @@ async def _migrate_schema(conn) -> None:
         await conn.execute(
             "ALTER TABLE task_audit_log ADD COLUMN contact_id INTEGER"
         )
-        await conn.execute(
-            "ALTER TABLE task_audit_log ALTER COLUMN conversation_id DROP NOT NULL"
-        )
+
+    await conn.execute(
+        "ALTER TABLE task_audit_log ALTER COLUMN conversation_id DROP NOT NULL"
+    )
 
     await conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_audit_contact "
@@ -145,9 +146,10 @@ async def _migrate_schema(conn) -> None:
         await conn.execute(
             "ALTER TABLE webhook_events ADD COLUMN contact_id INTEGER"
         )
-        await conn.execute(
-            "ALTER TABLE webhook_events ALTER COLUMN conversation_id DROP NOT NULL"
-        )
+
+    await conn.execute(
+        "ALTER TABLE webhook_events ALTER COLUMN conversation_id DROP NOT NULL"
+    )
 
 
 async def get_or_create_agent(email: str, nombre: str = "") -> dict:
