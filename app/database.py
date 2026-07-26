@@ -101,9 +101,7 @@ async def _migrate_schema(conn) -> None:
     if not col_check:
         await conn.execute("ALTER TABLE tareas ADD COLUMN contact_id INTEGER")
 
-    await conn.execute(
-        "ALTER TABLE tareas ALTER COLUMN conversation_id DROP NOT NULL"
-    )
+    await conn.execute("ALTER TABLE tareas ALTER COLUMN conversation_id DROP NOT NULL")
 
     old_constraint = await conn.fetchrow(
         """SELECT conname FROM pg_constraint
@@ -125,17 +123,14 @@ async def _migrate_schema(conn) -> None:
            WHERE table_name = 'task_audit_log' AND column_name = 'contact_id'"""
     )
     if not audit_col:
-        await conn.execute(
-            "ALTER TABLE task_audit_log ADD COLUMN contact_id INTEGER"
-        )
+        await conn.execute("ALTER TABLE task_audit_log ADD COLUMN contact_id INTEGER")
 
     await conn.execute(
         "ALTER TABLE task_audit_log ALTER COLUMN conversation_id DROP NOT NULL"
     )
 
     await conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_audit_contact "
-        "ON task_audit_log (contact_id)"
+        "CREATE INDEX IF NOT EXISTS idx_audit_contact ON task_audit_log (contact_id)"
     )
 
     webhook_col = await conn.fetchrow(
@@ -143,9 +138,7 @@ async def _migrate_schema(conn) -> None:
            WHERE table_name = 'webhook_events' AND column_name = 'contact_id'"""
     )
     if not webhook_col:
-        await conn.execute(
-            "ALTER TABLE webhook_events ADD COLUMN contact_id INTEGER"
-        )
+        await conn.execute("ALTER TABLE webhook_events ADD COLUMN contact_id INTEGER")
 
     await conn.execute(
         "ALTER TABLE webhook_events ALTER COLUMN conversation_id DROP NOT NULL"
@@ -352,9 +345,7 @@ async def cron_tick() -> dict:
 
             contact_id = task.get("contact_id")
             if not contact_id:
-                logger.warning(
-                    "Task %s has no contact_id, skipping sync", task["id"]
-                )
+                logger.warning("Task %s has no contact_id, skipping sync", task["id"])
                 transitions["failed"] += 1
                 continue
 
@@ -454,13 +445,15 @@ async def batch_sync_tasks_from_chatwoot(contacts_data: list[dict]) -> dict:
         if fecha_raw:
             with suppress(ValueError):
                 fecha = date.fromisoformat(fecha_raw[:10])
-        entries.append({
-            "contact_id": contact["contact_id"],
-            "conversation_id": contact.get("conversation_id"),
-            "mensaje": mensaje,
-            "fecha_raw": fecha_raw,
-            "fecha": fecha,
-        })
+        entries.append(
+            {
+                "contact_id": contact["contact_id"],
+                "conversation_id": contact.get("conversation_id"),
+                "mensaje": mensaje,
+                "fecha_raw": fecha_raw,
+                "fecha": fecha,
+            }
+        )
 
     async with pool.acquire() as conn:
         contact_ids = [e["contact_id"] for e in entries if e["contact_id"]]
@@ -468,8 +461,7 @@ async def batch_sync_tasks_from_chatwoot(contacts_data: list[dict]) -> dict:
             return {"updated": 0, "created": 0, "closed": 0}
 
         rows = await conn.fetch(
-            "SELECT id, contact_id, estado"
-            " FROM tareas WHERE contact_id = ANY($1)",
+            "SELECT id, contact_id, estado FROM tareas WHERE contact_id = ANY($1)",
             contact_ids,
         )
         existing_map = {row["contact_id"]: dict(row) for row in rows}
@@ -492,23 +484,27 @@ async def batch_sync_tasks_from_chatwoot(contacts_data: list[dict]) -> dict:
                 continue
 
             if existing:
-                updates.append((
-                    existing["id"],
-                    entry["mensaje"] or "(Sincronizado desde Chatwoot)",
-                    entry["fecha"],
-                    entry["conversation_id"],
-                ))
+                updates.append(
+                    (
+                        existing["id"],
+                        entry["mensaje"] or "(Sincronizado desde Chatwoot)",
+                        entry["fecha"],
+                        entry["conversation_id"],
+                    )
+                )
             else:
                 if bot_agent_id is None:
                     agent = await get_or_create_agent("bot@i-labs.cl")
                     bot_agent_id = agent["id"]
-                creates.append((
-                    cid,
-                    entry["conversation_id"],
-                    entry["mensaje"] or "(Sincronizado desde Chatwoot)",
-                    entry["fecha"],
-                    bot_agent_id,
-                ))
+                creates.append(
+                    (
+                        cid,
+                        entry["conversation_id"],
+                        entry["mensaje"] or "(Sincronizado desde Chatwoot)",
+                        entry["fecha"],
+                        bot_agent_id,
+                    )
+                )
 
         if updates:
             await conn.executemany(
