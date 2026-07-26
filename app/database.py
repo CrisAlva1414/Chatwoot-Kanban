@@ -56,9 +56,6 @@ async def _init_schema() -> None:
       sync_pendiente    BOOLEAN NOT NULL DEFAULT false
     );
 
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_tareas_contact_id
-      ON tareas (contact_id) WHERE contact_id IS NOT NULL;
-
     CREATE TABLE IF NOT EXISTS task_audit_log (
       id               BIGSERIAL PRIMARY KEY,
       contact_id       INTEGER,
@@ -73,8 +70,6 @@ async def _init_schema() -> None:
       created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
-    CREATE INDEX IF NOT EXISTS idx_audit_contact
-      ON task_audit_log (contact_id);
     CREATE INDEX IF NOT EXISTS idx_audit_conversation
       ON task_audit_log (conversation_id);
     CREATE INDEX IF NOT EXISTS idx_audit_actor
@@ -136,6 +131,11 @@ async def _migrate_schema(conn) -> None:
         await conn.execute(
             "ALTER TABLE task_audit_log ALTER COLUMN conversation_id DROP NOT NULL"
         )
+
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audit_contact "
+        "ON task_audit_log (contact_id)"
+    )
 
     webhook_col = await conn.fetchrow(
         """SELECT column_name FROM information_schema.columns
