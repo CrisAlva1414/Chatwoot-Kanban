@@ -77,6 +77,15 @@ def _patch_lifespan():
         yield
 
 
+@pytest.fixture(autouse=True)
+def _clear_board_cache():
+    from app.routers.kanban import _board_cache
+
+    _board_cache.clear()
+    yield
+    _board_cache.clear()
+
+
 @pytest.fixture()
 def mock_chatwoot_ok():
     with (

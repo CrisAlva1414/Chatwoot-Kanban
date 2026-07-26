@@ -553,6 +553,10 @@ let activeFilter = '';
 let currentModalCardId = null;
 let pollingTimer = null;
 let isTabVisible = true;
+let lastGeneratedAt = null;
+let pollInterval = 30000;
+const MIN_POLL = 15000;
+const MAX_POLL = 60000;
 
 document.addEventListener('visibilitychange', () => {
   isTabVisible = !document.hidden;
@@ -652,8 +656,8 @@ function openContact(id) {
   if (!chatwootUrl || !id) return;
   const base = chatwootUrl.replace(/\/+$/, '');
   const url = chatwootAccountId
-    ? `${base}/app/accounts/${chatwootAccountId}/contacts/${id}/conversations`
-    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${id}/conversations`;
+    ? `${base}/app/accounts/${chatwootAccountId}/contacts/${id}`
+    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${id}`;
   window.open(url, '_blank');
 }
 
@@ -678,8 +682,8 @@ function openTaskModal(cardData) {
 
   const base = chatwootUrl.replace(/\/+$/, '');
   const chatwootLink = chatwootAccountId
-    ? `${base}/app/accounts/${chatwootAccountId}/contacts/${cardData.id}/conversations`
-    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${cardData.id}/conversations`;
+    ? `${base}/app/accounts/${chatwootAccountId}/contacts/${cardData.id}`
+    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${cardData.id}`;
 
   let taskSection = '';
   if (task) {
@@ -806,6 +810,21 @@ function closeTaskModal() {
   startPolling();
 }
 
+function optimisticTaskUpdate(contactId, taskData) {
+  const card = document.querySelector(`.card[data-contact-id="${contactId}"]`);
+  if (!card) return;
+  card.dataset.task = JSON.stringify(taskData);
+  const badge = card.querySelector('.card-task');
+  if (badge) badge.remove();
+  const badgeHTML = renderTaskBadge(taskData);
+  if (badgeHTML) {
+    const timeEl = card.querySelector('.card-time');
+    if (timeEl) {
+      timeEl.insertAdjacentHTML('beforebegin', badgeHTML);
+    }
+  }
+}
+
 async function createTask(contactId) {
   const msg = document.getElementById('task-msg')?.value?.trim();
   const date = document.getElementById('task-date')?.value;
@@ -814,6 +833,15 @@ async function createTask(contactId) {
 
   const btn = document.getElementById('modal-create');
   if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+
+  optimisticTaskUpdate(contactId, {
+    id: null,
+    estado: 'tarea_activa',
+    mensaje: msg,
+    fecha_vencimiento: date,
+    creado_por: '',
+  });
+  closeTaskModal();
 
   try {
     const res = await fetch(API_TASKS, {
@@ -824,12 +852,9 @@ async function createTask(contactId) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     showToast(data.action === 'updated' ? 'Tarea actualizada' : 'Tarea creada');
-    closeTaskModal();
-    resetStateFilter();
-    refreshBoard();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Crear tarea'; }
+    refreshBoard();
   }
 }
 
@@ -842,6 +867,15 @@ async function saveTask(taskId) {
   const btn = document.getElementById('modal-save');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
 
+  optimisticTaskUpdate(currentModalCardId, {
+    id: taskId,
+    estado: 'tarea_activa',
+    mensaje: msg,
+    fecha_vencimiento: date,
+    creado_por: '',
+  });
+  closeTaskModal();
+
   try {
     const res = await fetch(`${API_TASKS}/${taskId}`, {
       method: 'PATCH',
@@ -851,12 +885,9 @@ async function saveTask(taskId) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     showToast('Tarea actualizada');
-    closeTaskModal();
-    resetStateFilter();
-    refreshBoard();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+    refreshBoard();
   }
 }
 
@@ -864,17 +895,17 @@ async function closeTaskAction(taskId) {
   const btn = document.getElementById('modal-close-task');
   if (btn) { btn.disabled = true; btn.textContent = 'Cerrando…'; }
 
+  optimisticTaskUpdate(currentModalCardId, null);
+  closeTaskModal();
+
   try {
     const res = await fetch(`${API_TASKS}/${taskId}/close`, { method: 'PATCH' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     showToast('Tarea cerrada');
-    closeTaskModal();
-    resetStateFilter();
-    refreshBoard();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Cerrar tarea'; }
+    refreshBoard();
   }
 }
 
@@ -922,12 +953,13 @@ function renderBoard(data) {
   });
   document.getElementById('refresh-btn').addEventListener('click', () => refreshBoard());
 
-  refreshBoard();
+  const board = document.getElementById('board');
+  renderColumns(columns, board);
 }
 
 async function refreshBoard() {
-  const stage = document.getElementById('pipeline-select').value;
-  const taskFilter = document.getElementById('state-filter').value;
+  const stage = document.getElementById('pipeline-select')?.value;
+  const taskFilter = document.getElementById('state-filter')?.value;
   activeFilter = taskFilter;
 
   const board = document.getElementById('board');
@@ -935,6 +967,7 @@ async function refreshBoard() {
 
   try {
     const data = await loadBoard(stage || undefined);
+    lastGeneratedAt = data.generated_at || null;
     renderColumns(data.columns || [], board);
   } catch (err) {
     const isChatwoot = err.message.includes('Chatwoot');
@@ -1102,20 +1135,39 @@ function showToast(message, type = 'info') {
 
 function startPolling() {
   stopPolling();
-  pollingTimer = setInterval(async () => {
-    if (!isTabVisible || currentModalCardId) return;
+  lastGeneratedAt = null;
+  pollInterval = MIN_POLL;
+  scheduleNextPoll();
+}
+
+function scheduleNextPoll() {
+  pollingTimer = setTimeout(async () => {
+    if (!isTabVisible || currentModalCardId) {
+      scheduleNextPoll();
+      return;
+    }
     try {
-      const data = await loadBoard();
-      renderBoard(data);
+      const stage = document.getElementById('pipeline-select')?.value;
+      const data = await loadBoard(stage || undefined);
+      const changed = !data.generated_at || data.generated_at !== lastGeneratedAt;
+      if (changed) {
+        lastGeneratedAt = data.generated_at || null;
+        const board = document.getElementById('board');
+        renderColumns(data.columns || [], board);
+        pollInterval = MIN_POLL;
+      } else {
+        pollInterval = Math.min(pollInterval + 10000, MAX_POLL);
+      }
     } catch (err) {
       console.error('Polling refresh failed:', err);
     }
-  }, 30000);
+    scheduleNextPoll();
+  }, pollInterval);
 }
 
 function stopPolling() {
   if (pollingTimer) {
-    clearInterval(pollingTimer);
+    clearTimeout(pollingTimer);
     pollingTimer = null;
   }
 }
@@ -1124,6 +1176,7 @@ async function init() {
   try {
     const config = await loadConfig();
     const data = await loadBoard();
+    lastGeneratedAt = data.generated_at || null;
     renderBoard(data);
     startPolling();
   } catch (err) {
