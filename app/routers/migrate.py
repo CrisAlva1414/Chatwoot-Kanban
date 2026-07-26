@@ -238,6 +238,62 @@ async def migration_status():
     }
 
 
+@router.post("/cleanup-duplicates")
+async def cleanup_duplicate_tasks():
+    pool = get_pool()
+    result = {"closed": 0, "skipped": 0, "errors": []}
+
+    orphans = await pool.fetch(
+        """SELECT id, conversation_id FROM tareas
+           WHERE contact_id IS NULL AND conversation_id IS NOT NULL"""
+    )
+
+    for row in orphans:
+        conv_id = row["conversation_id"]
+        try:
+            conv = await chatwoot_client.get_conversation(conv_id)
+            sender = (conv.get("meta") or {}).get("sender") or {}
+            contact_id = sender.get("id")
+            if not contact_id:
+                result["skipped"] += 1
+                continue
+
+            existing = await pool.fetchrow(
+                "SELECT id FROM tareas WHERE contact_id = $1 AND id != $2",
+                contact_id,
+                row["id"],
+            )
+            if existing:
+                await pool.execute(
+                    """UPDATE tareas
+                       SET estado = 'tarea_cerrada',
+                           contact_id = NULL,
+                           cerrado_por = (
+                             SELECT id FROM agentes
+                              WHERE email = 'bot@i-labs.cl' LIMIT 1
+                           ),
+                           cerrado_en = now()
+                       WHERE id = $1""",
+                    row["id"],
+                )
+                result["closed"] += 1
+            else:
+                await pool.execute(
+                    "UPDATE tareas SET contact_id = $1 WHERE id = $2",
+                    contact_id,
+                    row["id"],
+                )
+                result["closed"] += 1
+        except Exception as exc:
+            result["errors"].append({
+                "task_id": row["id"],
+                "conversation_id": conv_id,
+                "error": str(exc),
+            })
+
+    return result
+
+
 def _extract_list(resp: dict | list) -> list:
     if isinstance(resp, list):
         return resp
