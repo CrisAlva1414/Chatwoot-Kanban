@@ -1,4 +1,4 @@
-# Ruki Plugins — Kanban
+# Chatwoot-Kanban — Kanban
 
 Integración Kanban/Tareas para Chatwoot CRM. Plugin desplegado como API
 FastAPI, sin frontend propio; la UI será vía iframe embebido en Chatwoot.
@@ -91,10 +91,10 @@ FastAPI, sin frontend propio; la UI será vía iframe embebido en Chatwoot.
 2. git push origin develop
 3. GitHub Actions: lint + pytest → build :develop → GHCR
 4. Arcane: auto-sync → pull → redeploy en NAS
-5. Probar en devkanban.ruki-bot.com
+5. Probar en devkanban.example.com
 6. Si todo OK → PR develop → main
 7. Tests pasan → approve manual → merge
-8. Arcane: auto-sync → pull → redeploy en kanban.ruki-bot.com
+8. Arcane: auto-sync → pull → redeploy en kanban.example.com
 ```
 
 ### Entorno staging (Arcane)

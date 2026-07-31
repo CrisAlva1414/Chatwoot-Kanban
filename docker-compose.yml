@@ -1,7 +1,7 @@
 services:
-  ruki-kanban-postgres:
+  chatwoot-kanban-db:
     image: postgres:16-alpine
-    container_name: ruki-kanban-postgres
+    container_name: chatwoot-kanban-db
     restart: unless-stopped
     volumes:
       - kanban_pgdata:/var/lib/postgresql/data
@@ -15,19 +15,19 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - ruki_cloudflared
+      - chatwoot_shared
 
-  ruki-kanban-kanban:
-    image: ghcr.io/i-labs-chile/ruki-plugins-kanban:main
-    container_name: ruki-kanban-kanban
+  chatwoot-kanban-app:
+    image: ghcr.io/crisalva1414/chatwoot-kanban:main
+    container_name: chatwoot-kanban-app
     restart: unless-stopped
     depends_on:
-      ruki-kanban-postgres:
+      chatwoot-kanban-db:
         condition: service_healthy
     env_file:
       - .env
     networks:
-      - ruki_cloudflared
+      - chatwoot_shared
     read_only: true
     tmpfs:
       - /tmp
@@ -40,6 +40,6 @@ volumes:
   kanban_pgdata:
 
 networks:
-  ruki_cloudflared:
-    name: ruki_cloudflared
+  chatwoot_shared:
+    name: chatwoot_shared
     external: true

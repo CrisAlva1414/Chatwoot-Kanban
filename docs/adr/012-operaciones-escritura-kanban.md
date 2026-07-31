@@ -4,7 +4,7 @@
 |---|---|
 | **Estado** | Aceptado |
 | **Fecha** | 2026-07-15 |
-| **Proyecto** | kanban.ruki-bot.com |
+| **Proyecto** | kanban.example.com |
 | **Decidido por** | Sesión 004 |
 
 ---

@@ -16,7 +16,7 @@ async def lifespan(_app: FastAPI):
     await close_pool()
 
 
-app = FastAPI(title="Chatwoot Integration - i-labs", lifespan=lifespan)
+app = FastAPI(title="Chatwoot-Kanban", lifespan=lifespan)
 
 app.include_router(conversations.router)
 app.include_router(api.router)

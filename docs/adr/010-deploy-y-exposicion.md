@@ -17,17 +17,17 @@ a internet por seguridad. El acceso externo se canaliza por Cloudflare.
 | CI/CD            | GitHub Actions: build + push a GHCR en cada push a main |
 | Orquestación     | `docker compose` en el NAS                              |
 | Deploy UI        | Arcane: gestiona contenedores, logs y actualizaciones   |
-| Red              | Externa compartida (`ruki_cloudflared`)                 |
+| Red              | Externa compartida (`chatwoot_shared`)                 |
 | Exposición       | Cloudflare Tunnel (ningún puerto en host)               |
 | Autenticación    | Cloudflare Access (JWT validado en la app)              |
 
-Nombrado de contenedores: `ruki-<proyecto>-<servicio>`.
+Nombrado de contenedores: `chatwoot-<proyecto>-<servicio>`.
 
 ## Flujo de deploy
 
 1. Push a `main` → GitHub Actions construye imagen multi-arch y la publica en GHCR.
 2. Arcane detecta la nueva imagen y ejecuta `docker compose pull && docker compose up -d`.
-3. La app se conecta a PostgreSQL (contenedor `ruki-kanban-postgres`).
+3. La app se conecta a PostgreSQL (contenedor `chatwoot-kanban-db`).
 4. Cloudflare Tunnel expone la app sin puertos en el host.
 
 ## Consecuencias
@@ -35,6 +35,6 @@ Nombrado de contenedores: `ruki-<proyecto>-<servicio>`.
 - No hay `ports:` en docker-compose.
 - La app debe validar el JWT de Cloudflare Access en cada request
   protegido (pendiente de implementar).
-- El tunnel corre como contenedor separado en la misma red `ruki_cloudflared`.
+- El tunnel corre como contenedor separado en la misma red `chatwoot_shared`.
 - La imagen se ejecuta como usuario no-root (`appuser`).
 - El Dockerfile usa multi-stage build para reducir tamaño.

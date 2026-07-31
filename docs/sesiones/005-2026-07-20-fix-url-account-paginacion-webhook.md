@@ -99,6 +99,6 @@ Lógica idempotente:
 ## Próximo paso
 
 - Configurar webhook en Chatwoot apuntando a
-  `https://kanban.ruki-bot.com/webhooks/conversation-updated` con secret
+  `https://kanban.example.com/webhooks/conversation-updated` con secret
   `tkA9gJdJL2fRSsSBLgCCkjRy`
 - Verificar en staging que los 3 fixes funcionan

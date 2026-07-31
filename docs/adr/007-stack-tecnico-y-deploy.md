@@ -5,7 +5,7 @@
 | **Estado** | Aceptado |
 | **Fecha** | 2026-07-09 |
 | **Actualizado** | 2026-07-13 |
-| **Proyecto** | kanban.ruki-bot.com |
+| **Proyecto** | kanban.example.com |
 | **Decidido por** | Sesión de factibilidad técnica inicial |
 
 ---
@@ -48,16 +48,16 @@ asyncpg==0.29.0
 Flujo:
 1. Push a `main` dispara el workflow de GitHub Actions.
 2. GitHub Actions construye la imagen multi-arch (amd64 + arm64) y la
-   publica en GHCR (`ghcr.io/i-labs-chile/ruki-plugins-kanban`).
+   publica en GHCR (`ghcr.io/the-company/chatwoot-kanban`).
 3. Arcane detecta la nueva imagen en GHCR y ejecuta el pull + restart.
-4. La app se conecta a PostgreSQL (contenedor `ruki-kanban-postgres`).
+4. La app se conecta a PostgreSQL (contenedor `chatwoot-kanban-db`).
 
 ### Estructura de servicios (docker-compose.yml)
 
 ```
 services:
-  ruki-kanban-postgres:  PostgreSQL 16 Alpine
-  ruki-kanban-kanban:    FastAPI (puerto 8000, no expuesto)
+  chatwoot-kanban-db:  PostgreSQL 16 Alpine
+  chatwoot-kanban-app:    FastAPI (puerto 8000, no expuesto)
 ```
 
 El servicio de la app se ejecuta como usuario no-root (`appuser`) con
@@ -72,7 +72,7 @@ valores. Variables requeridas:
 
 ```bash
 # Chatwoot
-CHATWOOT_BASE_URL=https://chatwoot.ruki-bot.com
+CHATWOOT_BASE_URL=https://chatwoot.example.com
 CHATWOOT_ACCOUNT_ID=
 CHATWOOT_BOT_TOKEN=
 
@@ -93,7 +93,7 @@ ENV=production
 ## Estructura de repo
 
 ```
-ruki-plugins-kanban/
+chatwoot-kanban/
 ├── app/
 │   ├── main.py
 │   ├── config.py

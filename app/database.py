@@ -385,7 +385,7 @@ async def sync_task_from_chatwoot(
 
         if not mensaje and not fecha_raw:
             if row and row["estado"] != "tarea_cerrada":
-                agent = await get_or_create_agent("bot@i-labs.cl")
+                agent = await get_or_create_agent(settings.chatwoot_bot_email)
                 await conn.execute(
                     """UPDATE tareas
                        SET estado = 'tarea_cerrada', cerrado_por = $2,
@@ -417,7 +417,7 @@ async def sync_task_from_chatwoot(
             )
             return {"action": "updated"}
 
-        agent_ = await get_or_create_agent("bot@i-labs.cl")
+        agent_ = await get_or_create_agent(settings.chatwoot_bot_email)
         result = await conn.fetchrow(
             """INSERT INTO tareas
                (contact_id, conversation_id, mensaje, fecha_vencimiento, creado_por)
@@ -478,7 +478,7 @@ async def batch_sync_tasks_from_chatwoot(contacts_data: list[dict]) -> dict:
             if not entry["mensaje"] and not entry["fecha_raw"]:
                 if existing and existing["estado"] != "tarea_cerrada":
                     if bot_agent_id is None:
-                        agent = await get_or_create_agent("bot@i-labs.cl")
+                        agent = await get_or_create_agent(settings.chatwoot_bot_email)
                         bot_agent_id = agent["id"]
                     closes.append((existing["id"], bot_agent_id))
                 continue
@@ -494,7 +494,7 @@ async def batch_sync_tasks_from_chatwoot(contacts_data: list[dict]) -> dict:
                 )
             else:
                 if bot_agent_id is None:
-                    agent = await get_or_create_agent("bot@i-labs.cl")
+                    agent = await get_or_create_agent(settings.chatwoot_bot_email)
                     bot_agent_id = agent["id"]
                 creates.append(
                     (

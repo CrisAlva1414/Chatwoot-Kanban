@@ -7,7 +7,7 @@
 
 ## Contexto
 
-El proyecto está en producción (kanban.ruki-bot.com) con deploy manual vía
+El proyecto está en producción (kanban.example.com) con deploy manual vía
 Arcane. No hay branch protection, no hay testing automatizado, y no hay
 entorno de staging separado. El usuario desarrolla directamente en `main`
 y deploya manualmente. Con la aplicación sirviendo a usuarios reales, se
@@ -43,8 +43,8 @@ en Arcane. Diferencias con producción:
 |---------|------------|---------|
 | Compose | `docker-compose.yml` | `developer-compose.yml` |
 | Tag imagen | `:main` | `:develop` |
-| Container DB | `ruki-kanban-postgres` | `ruki-kanban-staging-postgres` |
-| Container app | `ruki-kanban-kanban` | `ruki-kanban-staging-kanban` |
+| Container DB | `chatwoot-kanban-db` | `chatwoot-kanban-staging-db` |
+| Container app | `chatwoot-kanban-app` | `chatwoot-kanban-staging-app` |
 | Volumen DB | `kanban_pgdata` | `kanban_staging_pgdata` |
 | DB name | `kanban` (de `.env`) | `kanban_staging` (override) |
 
@@ -81,7 +81,7 @@ workflow de deploy; Arcane detecta cambios en GHCR y redeploya.
 - [ ] Crear rama `develop` y push
 - [ ] Configurar branch protection en GitHub
 - [ ] Configurar proyecto de staging en Arcane
-- [ ] Configurar Cloudflare Tunnel para `devkanban.ruki-bot.com`
+- [ ] Configurar Cloudflare Tunnel para `devkanban.example.com`
 
 ## Archivos creados/modificados
 

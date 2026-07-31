@@ -4,7 +4,7 @@
 |---|---|
 | **Estado** | Aceptado |
 | **Fecha** | 2026-07-17 |
-| **Proyecto** | kanban.ruki-bot.com |
+| **Proyecto** | kanban.example.com |
 | **Decidido por** | Sesión 008 |
 
 ---
@@ -43,7 +43,7 @@ Copia del workflow de producción con:
 **Decisión clave:** El deploy NO usa SSH desde GitHub Actions. Arcane GitOps maneja el ciclo completo.
 
 **Configuración en Arcane:**
-1. Dos Git-syncs apuntando al mismo repo (`I-Labs-Chile/Ruki-Plugins-Kanban`)
+1. Dos Git-syncs apuntando al mismo repo (`The-Company/Chatwoot-Kanban`)
 2. Sync producción: branch `main`, compose file `docker-compose.yml`
 3. Sync staging: branch `develop`, compose file `developer-compose.yml`
 4. Auto Sync habilitado en ambos (polling cada 1-2 minutos)

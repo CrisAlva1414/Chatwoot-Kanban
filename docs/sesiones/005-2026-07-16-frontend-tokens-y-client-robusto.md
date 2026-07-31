@@ -143,7 +143,7 @@ lifespan para mockear init/close del chatwoot client).
 | 1 | `c37bd9e` | style: correct the frontend tokens and make the client more robust |
 | 2 | `5090e0f` | feat(kanban): add task modal for create, edit and close from UI |
 
-**Estado:** Desplegado en producción (kanban.ruki-bot.com).
+**Estado:** Desplegado en producción (kanban.example.com).
 
 ## Próximo paso
 

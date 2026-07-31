@@ -22,6 +22,7 @@ usando el formato [ADR](000-template.md).
 | 013 | Aceptado | [Modelo de ramas y gate de protección](013-modelo-ramas-y-gate-proteccion.md) |
 | 015 | Aceptado | [Pipeline de CI/CD](015-pipeline-ci-cd.md) |
 | 016 | Aceptado | [Migración conversation-based a contact-based](016-migracion-conversation-a-contact-based.md) |
+| 017 | Aceptado | [Desvinculación y apertura open source](017-desvinculacion-y-apertura-open-source.md) |
 
 ## Estado posible
 

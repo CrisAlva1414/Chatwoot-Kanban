@@ -108,7 +108,7 @@ def test_move_stage_ok(client, mock_chatwoot_ok):
     ):
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         mock_chatwoot_ok.safe_update_contact_custom_attributes = AsyncMock(
@@ -127,7 +127,7 @@ def test_move_stage_invalid(client, mock_chatwoot_ok):
     with patch("app.routers.kanban.get_or_create_agent") as mock_agent:
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         response = client.patch(
@@ -144,7 +144,7 @@ def test_move_stage_chatwoot_error(client, mock_chatwoot_ok):
     ):
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         mock_chatwoot_ok.safe_update_contact_custom_attributes = AsyncMock(
@@ -175,7 +175,7 @@ def test_create_task(client, mock_chatwoot_ok):
     ):
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         mock_active.return_value = None
@@ -216,7 +216,7 @@ def test_create_task_overwrite(client, mock_chatwoot_ok):
     ):
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         mock_active.return_value = {
@@ -249,7 +249,7 @@ def test_close_task(client, mock_chatwoot_ok):
     ):
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         mock_close.return_value = {
@@ -275,7 +275,7 @@ def test_close_task_not_found(client, mock_chatwoot_ok):
     ):
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         mock_close.return_value = {"error": "not_found"}
@@ -321,7 +321,7 @@ def test_cron_tick_endpoint(client):
     ):
         mock_agent.return_value = {
             "id": 1,
-            "email": "bot@i-labs.cl",
+            "email": "bot@example.com",
             "nombre": "Bot",
         }
         mock_cron.return_value = {

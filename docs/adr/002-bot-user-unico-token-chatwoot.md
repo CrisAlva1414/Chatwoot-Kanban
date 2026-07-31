@@ -4,7 +4,7 @@
 |---|---|
 | **Estado** | Aceptado |
 | **Fecha** | 2026-07-09 |
-| **Proyecto** | kanban.ruki-bot.com |
+| **Proyecto** | kanban.example.com |
 | **Decidido por** | Sesión de factibilidad técnica inicial |
 
 ---
@@ -17,7 +17,7 @@ Cada agente, incluso con rol básico, tiene acceso a su propio Personal Access T
 
 ## Decisión
 
-Usar un único **bot-user dedicado** (ej. `api-bot@i-labs.cl`) con rol de Agente, cuyo token vive exclusivamente en las variables de entorno del backend. El token nunca se expone al frontend ni a ningún agente humano.
+Usar un único **bot-user dedicado** (ej. `api-bot@example.com`) con rol de Agente, cuyo token vive exclusivamente en las variables de entorno del backend. El token nunca se expone al frontend ni a ningún agente humano.
 
 ## Fundamento técnico
 

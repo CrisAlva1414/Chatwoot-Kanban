@@ -4,7 +4,7 @@
 |---|---|
 | **Fecha** | 2026-07-09 |
 | **Tipo** | Diseño / Factibilidad / Kick-off de desarrollo |
-| **Proyecto** | kanban.ruki-bot.com integrado con chatwoot.ruki-bot.com |
+| **Proyecto** | kanban.example.com integrado con chatwoot.example.com |
 | **Estado al cierre** | Etapa 1 entregada — en producción con cambios propios del desarrollador |
 
 ---
@@ -34,7 +34,7 @@ El alcance se limitó explícitamente a factibilidad, existencia de endpoints y 
 |---|---|---|
 | 1 | Dashboard App es solo superficie visual; toda la lógica va contra la REST API | ADR-001 |
 | 2 | Un único bot-user con token en backend; nunca tokens por agente humano | ADR-002 |
-| 3 | Cloudflare Access con OTP por `@i-labs.cl` como capa de auth de agentes | ADR-003 |
+| 3 | Cloudflare Access con OTP por `@example.com` como capa de auth de agentes | ADR-003 |
 | 4 | Audit log propio como única fuente de atribución real (quién hizo qué) | ADR-004 |
 | 5 | BD propia como fuente de verdad de tareas; Chatwoot solo recibe `tarea_estado` | ADR-005 |
 | 6 | Kanban sobre custom_attributes de conversación vía `/conversations/filter` | ADR-006 |
@@ -71,7 +71,7 @@ El alcance se limitó explícitamente a factibilidad, existencia de endpoints y 
 
 - Procesos recurrentes tipo "contactar cada 3 meses" — se modela en sistema separado.
 - Múltiples tareas simultáneas o historial por lead — descartado, es 1:1.
-- Roles diferenciados dentro de la app — todos los agentes `@i-labs.cl` tienen los mismos permisos en MVP.
+- Roles diferenciados dentro de la app — todos los agentes `@example.com` tienen los mismos permisos en MVP.
 - Notificación push nativa a agentes (vía @mention en private note) — descartada al eliminar el uso de private notes.
 
 ---
@@ -107,9 +107,9 @@ chatwoot-integration/
 ### Pendiente para completar Etapa 1
 
 El desarrollador debe:
-1. Crear el bot-user en Chatwoot (`api-bot@i-labs.cl` o similar) y obtener su token.
+1. Crear el bot-user en Chatwoot (`api-bot@example.com` o similar) y obtener su token.
 2. Confirmar el `account_id` desde la URL del dashboard (`/app/accounts/{id}/`).
-3. Completar el `.env` con `CHATWOOT_BASE_URL=https://chatwoot.ruki-bot.com`, `CHATWOOT_ACCOUNT_ID` y `CHATWOOT_BOT_TOKEN`.
+3. Completar el `.env` con `CHATWOOT_BASE_URL=https://chatwoot.example.com`, `CHATWOOT_ACCOUNT_ID` y `CHATWOOT_BOT_TOKEN`.
 4. Hacer `docker compose build && docker compose up -d`.
 5. Llamar a `GET /debug/custom-attribute-definitions` y pegar la respuesta para definir los schemas Pydantic reales en `app/schemas/chatwoot.py`.
 6. Llamar a `POST /debug/conversations/filter` con un key real y confirmar el shape de paginación y de cada conversación en la respuesta.
@@ -146,6 +146,6 @@ Con esos dos JSONs confirmados, se puede cerrar la Etapa 1 y comenzar la Etapa 2
 
 - Empresa sin Salesforce ni CRM dedicado — Chatwoot es el sistema central.
 - Equipo de agentes < 10 personas con modelo de **recepcionista rotatorio** (pool compartido de conversaciones, sin ownership de lead).
-- Todos los agentes tienen correo `@i-labs.cl` (Hostinger). No hay Google Workspace ni Microsoft 365.
-- Infraestructura en servidor propio, expuesta vía Cloudflare. Dominio principal: `ruki-bot.com`. Servicios relevantes: `chatwoot.ruki-bot.com`, `kanban.ruki-bot.com`.
+- Todos los agentes tienen correo `@example.com` (Hostinger). No hay Google Workspace ni Microsoft 365.
+- Infraestructura en servidor propio, expuesta vía Cloudflare. Dominio principal: `example.com`. Servicios relevantes: `chatwoot.example.com`, `kanban.example.com`.
 - Codebase privado — sin uso de registries externos ni CI/CD de terceros.

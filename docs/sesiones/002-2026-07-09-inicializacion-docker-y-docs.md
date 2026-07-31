@@ -14,7 +14,7 @@ alcance; esta sesión implementa la infraestructura.
 ## Qué se hizo
 
 1. **Docker Compose productivo** con PostgreSQL 16, sin puertos expuestos,
-   container naming `ruki-<proyecto>-<servicio>`, red externa `ruki_shared`.
+   container naming `chatwoot-<proyecto>-<servicio>`, red externa `chatwoot_shared`.
 2. **`.env.example`** con todas las variables de configuración.
 3. **`.gitignore`** para `.env` y `__pycache__`.
 4. **Fusión de documentación:** los ADRs y sesión de Opus 4.8 (raíz `adr/`,
@@ -70,6 +70,6 @@ Después de la puesta en producción se implementó la Etapa 2:
 ## Próximo paso
 
 Configurar el webhook en Chatwoot (apuntando a
-`https://kanban.ruki-bot.com/webhooks/conversation-updated`) y probar el
+`https://kanban.example.com/webhooks/conversation-updated`) y probar el
 endpoint de escritura contra una conversación real. Luego Etapa 3 (Kanban
 visual).

@@ -4,14 +4,14 @@
 |---|---|
 | **Estado** | Aceptado |
 | **Fecha** | 2026-07-09 |
-| **Proyecto** | kanban.ruki-bot.com |
+| **Proyecto** | kanban.example.com |
 | **Decidido por** | Sesión de factibilidad técnica inicial |
 
 ---
 
 ## Contexto
 
-Chatwoot (self-hosted en `chatwoot.ruki-bot.com`) ofrece una funcionalidad llamada Dashboard App que permite embeber una URL externa como `<iframe>` dentro de la vista de conversación de cada agente. El objetivo era determinar si esta superficie es suficiente para construir un Kanban de pipeline y un sistema de tareas.
+Chatwoot (self-hosted en `chatwoot.example.com`) ofrece una funcionalidad llamada Dashboard App que permite embeber una URL externa como `<iframe>` dentro de la vista de conversación de cada agente. El objetivo era determinar si esta superficie es suficiente para construir un Kanban de pipeline y un sistema de tareas.
 
 ## Decisión
 

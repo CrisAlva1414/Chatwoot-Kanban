@@ -84,7 +84,7 @@ El sistema de Kanban + tareas requería alta sincronización entre DB local y Ch
 ## Próximo paso
 
 1. Deploy a staging (develop → Arcane)
-2. Probar en devkanban.ruki-bot.com:
+2. Probar en devkanban.example.com:
    - Crear tarea: debe ser instantáneo
    - Editar/cerrar tarea: debe ser instantáneo
    - Mover stages: sin cambios

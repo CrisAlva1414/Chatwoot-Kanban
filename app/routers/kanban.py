@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from app.chatwoot_client import chatwoot_client
+from app.config import settings
 from app.database import (
     batch_sync_tasks_from_chatwoot,
     close_task,
@@ -58,8 +59,8 @@ class EditTaskRequest(BaseModel):
 async def _get_actor(request: Request) -> tuple[int, str, str]:
     email = request.headers.get("cf-access-authenticated-user-email", "")
     if not email:
-        email = "bot@i-labs.cl"
-        name = "Bot (sin auth)"
+        email = settings.chatwoot_bot_email
+        name = "Bot (dev)"
     else:
         name = email.split("@")[0].replace(".", " ").title()
     agent = await get_or_create_agent(email, name)
@@ -369,12 +370,14 @@ async def kanban_config():
             "columns": [],
             "chatwoot_url": chatwoot_client.base_url,
             "chatwoot_account_id": chatwoot_client.account_id,
+            "chatwoot_frontend_url": settings.chatwoot_frontend_url,
         }
 
     return {
         "columns": pipeline_attr.get("attribute_values", []),
         "chatwoot_url": chatwoot_client.base_url,
         "chatwoot_account_id": chatwoot_client.account_id,
+        "chatwoot_frontend_url": settings.chatwoot_frontend_url,
     }
 
 
@@ -398,6 +401,7 @@ async def kanban_board(stage: str | None = None):
             "columns": [],
             "chatwoot_url": chatwoot_client.base_url,
             "chatwoot_account_id": chatwoot_client.account_id,
+            "chatwoot_frontend_url": settings.chatwoot_frontend_url,
         }
         _set_cached_board(stage, result)
         return result
@@ -469,6 +473,7 @@ async def kanban_board(stage: str | None = None):
         "columns": list(results),
         "chatwoot_url": chatwoot_client.base_url,
         "chatwoot_account_id": chatwoot_client.account_id,
+        "chatwoot_frontend_url": settings.chatwoot_frontend_url,
         "generated_at": time_module.time(),
     }
     _set_cached_board(stage, result)

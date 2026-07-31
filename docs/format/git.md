@@ -44,7 +44,7 @@ Reglas:
 2. Trabajar, commitear
 3. git push origin develop
 4. Tests corren → build :develop → Arcane auto-deploya staging
-5. Probar en devkanban.ruki-bot.com
+5. Probar en devkanban.example.com
 6. Cuando esté validado → PR develop → main → approve → merge → producción
 ```
 

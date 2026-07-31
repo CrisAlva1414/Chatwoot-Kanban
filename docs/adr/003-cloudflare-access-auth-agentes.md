@@ -4,24 +4,24 @@
 |---|---|
 | **Estado** | Aceptado |
 | **Fecha** | 2026-07-09 |
-| **Proyecto** | kanban.ruki-bot.com |
+| **Proyecto** | kanban.example.com |
 | **Decidido por** | Sesión de factibilidad técnica inicial |
 
 ---
 
 ## Contexto
 
-La aplicación (`kanban.ruki-bot.com`) debe ser accesible públicamente a nivel de red (expuesta via Cloudflare Proxy/Tunnel igual que el resto de servicios de ruki-bot.com), pero no debe permitir acceso a ningún agente no autorizado. El equipo es pequeño (menos de 10 personas) y todos tienen correo `@i-labs.cl` (Hostinger, no Google Workspace ni Microsoft 365).
+La aplicación (`kanban.example.com`) debe ser accesible públicamente a nivel de red (expuesta via Cloudflare Proxy/Tunnel igual que el resto de servicios de example.com), pero no debe permitir acceso a ningún agente no autorizado. El equipo es pequeño (menos de 10 personas) y todos tienen correo `@example.com` (Hostinger, no Google Workspace ni Microsoft 365).
 
 Se evaluaron tres opciones:
 
 1. **Login propio** (tabla de `agentes` con `password_hash`, sesión propia): funcional, pero requiere construir y mantener flujo de auth, recuperación de contraseñas, y gestión de sesiones.
 2. **OAuth con Google** (gratuito): descartado porque no hay Google Workspace corporativo. Usarlo con Gmail personal mezcla identidad personal con la empresa y pierde control de revocación centralizado.
-3. **Cloudflare Access con OTP por email**: el proveedor de auth se pone delante de la aplicación a nivel de DNS. Cloudflare envía un OTP al correo `@i-labs.cl` del agente; si es válido, emite un JWT firmado que llega al backend via header `Cf-Access-Jwt-Assertion`.
+3. **Cloudflare Access con OTP por email**: el proveedor de auth se pone delante de la aplicación a nivel de DNS. Cloudflare envía un OTP al correo `@example.com` del agente; si es válido, emite un JWT firmado que llega al backend via header `Cf-Access-Jwt-Assertion`.
 
 ## Decisión
 
-Usar **Cloudflare Access** con política de acceso restringida al dominio `@i-labs.cl`, autenticación por One-Time PIN enviado al correo corporativo (compatible con Hostinger, no requiere Workspace).
+Usar **Cloudflare Access** con política de acceso restringida al dominio `@example.com`, autenticación por One-Time PIN enviado al correo corporativo (compatible con Hostinger, no requiere Workspace).
 
 ## Fundamento técnico
 

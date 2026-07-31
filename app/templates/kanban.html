@@ -548,6 +548,7 @@ const API_TASKS = '/kanban/tasks';
 
 let chatwootUrl = '';
 let chatwootAccountId = '';
+let chatwootFrontendUrl = '';
 let allColumns = [];
 let activeFilter = '';
 let currentModalCardId = null;
@@ -636,6 +637,7 @@ async function loadConfig() {
   const data = await res.json();
   chatwootUrl = data.chatwoot_url || '';
   chatwootAccountId = data.chatwoot_account_id || '';
+  chatwootFrontendUrl = data.chatwoot_frontend_url || '';
   allColumns = data.columns || [];
   return data;
 }
@@ -653,12 +655,12 @@ async function loadBoard(stage) {
 }
 
 function openContact(id) {
-  if (!chatwootUrl || !id) return;
-  const base = chatwootUrl.replace(/\/+$/, '');
+  if (!id) return;
+  const base = (chatwootFrontendUrl || chatwootUrl).replace(/\/+$/, '');
   const url = chatwootAccountId
     ? `${base}/app/accounts/${chatwootAccountId}/contacts/${id}`
-    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${id}`;
-  window.open(url, '_blank');
+    : '';
+  if (url) window.open(url, '_blank');
 }
 
 function openTaskModal(cardData) {
@@ -680,10 +682,10 @@ function openTaskModal(cardData) {
     tarea_cerrada: 'Cerrada',
   };
 
-  const base = chatwootUrl.replace(/\/+$/, '');
+  const base = (chatwootFrontendUrl || chatwootUrl).replace(/\/+$/, '');
   const chatwootLink = chatwootAccountId
     ? `${base}/app/accounts/${chatwootAccountId}/contacts/${cardData.id}`
-    : `https://chatwoot.ruki-bot.com/app/accounts/3/contacts/${cardData.id}`;
+    : '';
 
   let taskSection = '';
   if (task) {

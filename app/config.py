@@ -7,14 +7,16 @@ class Settings(BaseSettings):
     chatwoot_account_id: int
     chatwoot_bot_token: str
 
-    # Postgres — acepta URL directa (viejo formato) o la construye desde
-    # campos individuales (POSTGRES_USER / PASSWORD / DB / HOST / PORT)
+    chatwoot_bot_email: str = "bot@example.com"
+    chatwoot_frontend_url: str = ""
+
+    # Postgres
     database_url: str = ""
 
     postgres_user: str = "kanban"
     postgres_password: str = ""
     postgres_db: str = "kanban"
-    postgres_host: str = "ruki-kanban-postgres"
+    postgres_host: str = "postgres"
     postgres_port: int = 5432
 
     @property

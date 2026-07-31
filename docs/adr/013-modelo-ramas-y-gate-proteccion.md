@@ -4,7 +4,7 @@
 |---|---|
 | **Estado** | Aceptado |
 | **Fecha** | 2026-07-17 |
-| **Proyecto** | kanban.ruki-bot.com |
+| **Proyecto** | kanban.example.com |
 | **Decidido por** | Sesión 008 |
 
 ---
@@ -32,7 +32,7 @@ El proyecto está en producción con deploy manual vía Arcane. No hay branch pr
 ```
 1. Trabajar en develop directamente (cambios pequeños)
 2. Push a develop → tests pasan → build :develop → Arcane auto-deploya staging
-3. Probar manualmente en devkanban.ruki-bot.com
+3. Probar manualmente en devkanban.example.com
 4. Para producción: PR develop → main → tests pasan → approve manual → merge
 5. Arcane auto-deploya a producción
 ```
