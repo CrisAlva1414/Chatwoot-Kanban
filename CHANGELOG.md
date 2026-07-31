@@ -21,4 +21,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD via GitHub Actions (lint, pytest, multi-arch Docker build to GHCR).
 - Cloudflare Access authentication support (optional).
 
-[0.1.0]: https://github.com/CrisAlva1414/chatwoot-kanban/releases/tag/v0.1.0
+[0.1.0]: https://github.com/CrisAlva1414/Chatwoot-Kanban/releases/tag/v0.1.0

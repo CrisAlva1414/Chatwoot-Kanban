@@ -13,7 +13,7 @@ Thanks for your interest in contributing!
 ### Local environment
 
 ```bash
-git clone https://github.com/CrisAlva1414/chatwoot-kanban.git
+git clone https://github.com/CrisAlva1414/Chatwoot-Kanban.git
 cd chatwoot-kanban
 python -m venv .venv
 source .venv/bin/activate

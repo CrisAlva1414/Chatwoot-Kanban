@@ -1,6 +1,6 @@
 # Chatwoot-Kanban
 
-[![CI](https://github.com/CrisAlva1414/chatwoot-kanban/actions/workflows/test.yml/badge.svg)](https://github.com/CrisAlva1414/chatwoot-kanban/actions/workflows/test.yml)
+[![CI](https://github.com/CrisAlva1414/Chatwoot-Kanban/actions/workflows/test.yml/badge.svg)](https://github.com/CrisAlva1414/Chatwoot-Kanban/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.139-teal.svg)](https://fastapi.tiangolo.com)
@@ -67,7 +67,7 @@ The board serves as Chatwoot's **Dashboard App** — an iframe embedded in the a
 1. **Clone the repo**
 
    ```bash
-   git clone https://github.com/CrisAlva1414/chatwoot-kanban.git
+   git clone https://github.com/CrisAlva1414/Chatwoot-Kanban.git
    cd chatwoot-kanban
    ```
 
