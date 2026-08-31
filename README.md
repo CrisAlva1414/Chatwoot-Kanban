@@ -19,6 +19,34 @@ Embeddable dashboard app with drag-and-drop pipeline, bidirectional custom attri
 - **Dark mode** — Light/dark theme following system preference.
 - **Security** — Optional Cloudflare Access authentication (header-based). Read-only container with no-new-privileges.
 
+## Demo
+
+Tablero y dashboard listos para ver sin necesidad de una instancia real de
+Chatwoot. Los datos (contactos, etapas, tareas y auditoría) son simulados y
+se generan con fechas relativas a *hoy*, así que el tablero siempre muestra
+tareas activas, que vencen hoy y vencidas.
+
+<p align="center">
+  <img src="docs/demo/kanban-light.png" alt="Tablero Kanban (claro)" width="820">
+  <br>
+  <em>Tablero Kanban — arrastra contactos entre etapas con sync instantáneo</em>
+</p>
+
+<p align="center">
+  <img src="docs/demo/kanban-task-modal.png" alt="Modal de tarea" width="820">
+  <br>
+  <em>Modal de tarea — crear, editar o cerrar tareas con sync bidireccional a Chatwoot</em>
+</p>
+
+| Dashboard (claro) | Dashboard (oscuro) |
+|:--:|:--:|
+| <img src="docs/demo/dashboard-light.png" alt="Dashboard claro" width="400"> | <img src="docs/demo/dashboard-dark.png" alt="Dashboard oscuro" width="400"> |
+
+> El mock de la API de Chatwoot y los datos de ejemplo (en `demo/` y
+> `docker-compose.demo.yml`) son una **herramienta local de desarrollo** que
+> no se publica en el repositorio. Para levantar el stack y regenerar estas
+> capturas, consulta [docs/demo/README.md](docs/demo/README.md).
+
 ## How it works
 
 ```
